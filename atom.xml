@@ -4,12 +4,38 @@
   <title></title>
   <link href="http://ferrous26.github.com/atom.xml" rel="self"/>
   <link href="http://ferrous26.github.com/"/>
-  <updated>2011-08-01T15:58:21-04:00</updated>
+  <updated>2011-08-03T22:47:32-04:00</updated>
   <id>http://ferrous26.github.com/</id>
   <author>
     <name>Mark Rada</name>
     
   </author>
 
+  
+  <entry>
+    <title>First!</title>
+    <link href="http://ferrous26.github.com/blog/2011/08/03/first/"/>
+    <updated>2011-08-03T22:40:00-04:00</updated>
+    <id>http://ferrous26.github.com/blog/2011/08/03/first</id>
+    <content type="html">&lt;p&gt;My first blog post. Ever.&lt;/p&gt;
+
+&lt;p&gt;I've been thinking about starting a blog for a few months now, but I
+could never find a topic that I wanted to publicly write about.&lt;/p&gt;
+
+&lt;p&gt;Possibilities:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;annoucements of things that I am working on&lt;/li&gt;
+&lt;li&gt;interesting tech that I am playing with&lt;/li&gt;
+&lt;li&gt;topics related to school work&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;I will probably make a blog post about my
+&lt;a href=&quot;https://rubygems.org/gems/jiraSOAP&quot;&gt;jiraSOAP&lt;/a&gt; gem in the next few
+days since I am releasing version 0.9 tonight.&lt;/p&gt;
+
+&lt;p&gt;Hopefully I don't pollute the internet too much.&lt;/p&gt;
+</content>
+  </entry>
   
 </feed>
