@@ -2,14 +2,18 @@
 <urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
     <url>
         <loc>http://ferrous26.github.com/blog/2011/08/03/first/</loc>
-        <lastmod>2011-08-03T22:41:06-04:00</lastmod>
+        <lastmod>2011-08-21T14:52:26-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://ferrous26.github.com/blog/2011/08/21/jiraSOAP-0.9/</loc>
+        <lastmod>2011-08-22T00:22:54-04:00</lastmod>
     </url>
     <url>
         <loc>http://ferrous26.github.com/blog/archives/</loc>
-        <lastmod>2011-08-03T22:41:06-04:00</lastmod>
+        <lastmod>2011-08-22T00:22:54-04:00</lastmod>
     </url>
     <url>
         <loc>http://ferrous26.github.com/</loc>
-        <lastmod>2011-08-03T22:41:06-04:00</lastmod>
+        <lastmod>2011-08-22T00:22:54-04:00</lastmod>
     </url>
 </urlset>

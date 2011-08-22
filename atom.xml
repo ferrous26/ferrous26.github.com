@@ -1,16 +1,583 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title></title>
+  <title>My blog</title>
   <link href="http://ferrous26.github.com/atom.xml" rel="self"/>
   <link href="http://ferrous26.github.com/"/>
-  <updated>2011-08-07T23:44:19-04:00</updated>
+  <updated>2011-08-22T00:23:22-04:00</updated>
   <id>http://ferrous26.github.com/</id>
   <author>
     <name>Mark Rada</name>
     
   </author>
 
+  
+  <entry>
+    <title>jiraSOAP 0.9</title>
+    <link href="http://ferrous26.github.com/blog/2011/08/21/jiraSOAP-0.9/"/>
+    <updated>2011-08-21T00:00:00-04:00</updated>
+    <id>http://ferrous26.github.com/blog/2011/08/21/jiraSOAP-0.9</id>
+    <content type="html">&lt;p&gt;A couple of weeks ago I released version 0.9 of the
+&lt;a href=&quot;http://github.com/Marketcircle/jiraSOAP&quot;&gt;jiraSOAP&lt;/a&gt; gem. &lt;code&gt;jiraSOAP&lt;/code&gt;
+0.9 is a milestone release for a few reasons, namely stability and
+motivation. Stability, I think, is a reflection of my journey from
+knowing very little Ruby to being to pass myself off as knowing a
+thing or two. This blog is about one the adventures I had with
+developing &lt;code&gt;jiraSOAP&lt;/code&gt;.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;h2&gt;A Little History&lt;/h2&gt;
+
+&lt;p&gt;&lt;code&gt;jiraSOAP&lt;/code&gt; is my first real ruby project and it was how I learned ruby
+basics. My earlier experiences with ruby were small scripts to access
+the bug tracker at work and I was using a gem called
+&lt;a href=&quot;https://github.com/tastyhat/jira4r&quot;&gt;jira4r&lt;/a&gt; in order to communicate
+with the bug tracker. However, this gem was limited in a few ways that
+became very irritating. It had no APIs from JIRA 4.x; the API it did
+expose was ugly and inflexible; and the gem could not run on Ruby
+1.9 and thus could not run on MacRuby, which is a technology that my
+boss suggested looking into.&lt;/p&gt;
+
+&lt;p&gt;At the time, JIRA was beginning to develop a REST API, but it was
+pre-alpha quality. The available resources were very limited and were
+read-only. On the other hand the still supported, but not actively
+developed, SOAP interface had APIs for almost everything.&lt;/p&gt;
+
+&lt;p&gt;Enter &lt;a href=&quot;https://github.com/unwire/handsoap&quot;&gt;handsoap&lt;/a&gt;, a gem that
+promised a fairly easy way to make a custom wrapper around a SOAP API
+that would be very fast. As it turns out, the speed part was
+overly optimistic, but I'll get to that later. The important feature
+was that I could customize the API that I provided instead of simply
+generating something from the WSDL.&lt;/p&gt;
+
+&lt;p&gt;After a couple of weeks of playing with the library (it was far from
+my primary concern at work), I had a working predecessor to
+&lt;code&gt;jiraSOAP&lt;/code&gt;. At this point I asked my boss if we could open source my
+work so far; that way I would work on it more after hours and other
+people could use and hopefully contribute to the project as well.&lt;/p&gt;
+
+&lt;h2&gt;jiraSOAP's Early OSS Days&lt;/h2&gt;
+
+&lt;p&gt;The early days were hectic, I was pretty much rewriting &lt;code&gt;jiraSOAP&lt;/code&gt; for
+each release as I learned new things. I even had a silly contribution
+policy warning people about contributions being unlikely to apply
+cleanly.&lt;/p&gt;
+
+&lt;p&gt;Part of the problem was that the
+&lt;a href=&quot;https://github.com/unwire/handsoap/wiki/Recommendations&quot;&gt;recommended practices&lt;/a&gt;
+for writing the SOAP client were about as vague as an East Texas
+software patent, or at least the step about refactoring was. I can't
+blame &lt;code&gt;handsoap&lt;/code&gt; for that problem, it was my first real ruby project
+and I was still figuring a lot things out.&lt;/p&gt;
+
+&lt;p&gt;The logic for building messages was pretty clear and simple, but the
+the parsing logic required a relatively large amount of code from
+me. It was the parsing logic that was changing often due to
+refactoring with the goal of being cleaner and faster.&lt;/p&gt;
+
+&lt;h3&gt;How Slow Was It?&lt;/h3&gt;
+
+&lt;p&gt;&lt;code&gt;handsoap&lt;/code&gt; claims to be faster because it can use C
+extensions for HTTP communication and XML parsing, they even supply
+some
+&lt;a href=&quot;https://github.com/unwire/handsoap/blob/master/README.markdown&quot;&gt;benchmarks&lt;/a&gt;
+in the README, though they qualify the benchmarks as being a little
+unfair.&lt;/p&gt;
+
+&lt;p&gt;I guess the unfair part is that those numbers were not jiving with my
+personal experience; everything felt much slower than advertised. When I
+looked into it, I found that their benchmark
+&lt;a href=&quot;https://github.com/unwire/handsoap/blob/master/tests/benchmark_integration_test.rb&quot;&gt;code&lt;/a&gt;
+didn't actually do any parsing!&lt;/p&gt;
+
+&lt;p&gt;Inspired by
+&lt;a href=&quot;http://confreaks.net/videos/427-rubyconf2010-zomg-why-is-this-code-so-slow&quot;&gt;&amp;quot;ZOMG WHY IS THIS CODE SO SLOW?&amp;quot;&lt;/a&gt;,
+I began my own investigation into why my gem was slow. Though, in my
+case I was working with a smaller and more sane code base.&lt;/p&gt;
+
+&lt;p&gt;Step 1 is figuring out what to measure and then step 2 is making the
+baseline measurements. Since I supplied most of the parsing logic, I
+figured that I should measure parsing time. I chose to measure parse
+time for &lt;code&gt;Issue&lt;/code&gt; objects since it is the most common type of object
+to work with; but it is also the largest type, weighing in at 21
+attributes, including collections of other data structures that need
+to be parsed.&lt;/p&gt;
+
+&lt;p&gt;Before I get to how the measurements were made, I should mention that
+when I originally performed benchmarks that I was not very rigorous
+about collecting data. For the sake of this blog post I went back in
+time and benchmarked things properly. I say properly, but I really
+mean &amp;quot;good enough&amp;quot; for my purposes.&lt;/p&gt;
+
+&lt;p&gt;Since I wanted to measure just parsing time, I needed to change the
+&lt;code&gt;jiraSOAP&lt;/code&gt; code base a little. The gist shows how to modify the
+&lt;code&gt;jiraSOAP&lt;/code&gt; 0.9 code, but the changes needed for an older version are
+almost the same:&lt;/p&gt;
+
+&lt;div&gt;&lt;script src='https://gist.github.com/1144170.js?file=parse_measurement.diff'&gt;&lt;/script&gt;
+&lt;noscript&gt;&lt;pre&gt;&lt;code&gt;diff --git a/lib/jiraSOAP/api.rb b/lib/jiraSOAP/api.rb
+index fc0e40d..a0cdf33 100644
+--- a/lib/jiraSOAP/api.rb
++++ b/lib/jiraSOAP/api.rb
+@@ -91,7 +91,10 @@ module JIRA::RemoteAPI
+   # @return [Nokogiri::XML::NodeSet]
+   def array_jira_call type, method, *args
+     response = soap_call method, self.auth_token, *args
++
++    start = Time.now
+     response.xpath('node()').map { |frag| type.new_with_xml(frag) }
++    Time.now - start
+   end
+ 
+ end&lt;/code&gt;&lt;/pre&gt;&lt;/noscript&gt;&lt;/div&gt;
+
+&lt;p&gt;As a baseline I measured
+&lt;a href=&quot;https://github.com/jhollingworth/jira4r-jh&quot;&gt;jira4r-jh&lt;/a&gt;,  a recent
+fork that includes an API that I wanted to use, but the changes needed
+for measurement happened in &lt;code&gt;soap4r&lt;/code&gt;, a dependency:&lt;/p&gt;
+
+&lt;div&gt;&lt;script src='https://gist.github.com/1144170.js?file=soap4r.diff'&gt;&lt;/script&gt;
+&lt;noscript&gt;&lt;pre&gt;&lt;code&gt;--- /Library/Ruby/Gems/1.8/gems/soap4r-1.5.8/lib/soap/mapping/mapping.rb   2011-08-14 02:27:33.000000000 -0400
++++ mapping.rb  2011-08-14 02:28:58.000000000 -0400
+@@ -59,11 +59,13 @@
+   end
+ 
+   def self.soap2obj(node, registry = nil, klass = nil, opt = EMPTY_OPT)
++    start = Time.now
+     registry ||= Mapping::DefaultRegistry
+     obj = nil
+     protect_mapping(opt) do
+       obj = _soap2obj(node, registry, klass)
+     end
++    $nums &amp;lt;&amp;lt; Time.now - start
+     obj
+   end
+ &lt;/code&gt;&lt;/pre&gt;&lt;/noscript&gt;&lt;/div&gt;
+
+&lt;p&gt;Instead of using &lt;code&gt;benchmark&lt;/code&gt; or &lt;code&gt;minitest&lt;/code&gt;, I opted to just write a
+small script:&lt;/p&gt;
+
+&lt;div&gt;&lt;script src='https://gist.github.com/1144170.js?file=bench.rb'&gt;&lt;/script&gt;
+&lt;noscript&gt;&lt;pre&gt;&lt;code&gt;require 'rubygems'
+require 'jiraSOAP'
+
+# I changed the URL and credentials as they are sensitive infos
+$db = JIRA::JIRAService.new 'http://jira.domain.com:8080' 
+$db.login 'mark', 'password'
+at_exit { $db.logout}
+
+def bench_it issues, iterations
+  times = []
+  iterations.times do
+    # use #get_ so it is compatible with older versions
+    times &amp;lt;&amp;lt; $db.get_issues_from_jql_search('key &amp;gt;= &amp;quot;PROJ-1&amp;quot; and key &amp;lt;= &amp;quot;PROJ-1500&amp;quot; order by key asc', issues)
+    sleep 1
+  end
+  times.inject(0, &amp;amp;:+) / times.size
+end
+
+puts bench_it 1000, 10
+puts bench_it 100, 50
+puts bench_it 10, 100
+puts bench_it 1, 500
+&lt;/code&gt;&lt;/pre&gt;&lt;/noscript&gt;&lt;/div&gt;
+
+&lt;p&gt;The oddity there is that I average a larger sample set for a smaller
+number of issues because I am trying to avoid outliers from the GC
+kicking in. I didn't want to stop the GC as that seemed too
+unrealistic, but I did give a 1 second &lt;code&gt;sleep&lt;/code&gt; period between
+benchmarking runs. Since I am trying to show the difference in
+performance between versions, I don't think it will matter as long as
+I am consistent and the numbers don't end up being very close
+together.&lt;/p&gt;
+
+&lt;p&gt;Due to differences in how I patched the projects, the benchmark script
+for &lt;code&gt;jira4r&lt;/code&gt; is a little different, I won't embed it here, but it's in
+the &lt;a href=&quot;https://gist.github.com/1144170&quot;&gt;gist&lt;/a&gt; with everything else.&lt;/p&gt;
+
+&lt;p&gt;If you are familiar with the JIRA version of SQL, you can see that I
+am always using the same set of issues for each test run; and the 1000
+issues that were used take up 4.4 MB on disk when dumped to a file.
+Benchmarks on my 2.4 GHz C2D MacBook Pro running OS X Lion. &lt;code&gt;jiraSOAP&lt;/code&gt;
+benchmarks were run using Ruby 1.9.3preview1 and MacRuby 0.10;
+&lt;code&gt;jira4r&lt;/code&gt; benchmarks were run using Ruby 1.8.7-p249.&lt;/p&gt;
+
+&lt;h2&gt;The Numbers&lt;/h2&gt;
+
+&lt;p&gt;&lt;img class='' src='http://ferrous26.github.com/images/jiraSOAP_0.5.3_vs_jira4r.png' width='' height='' alt='' title=''&gt;&lt;/p&gt;
+
+&lt;p&gt;WHAT. THE. FRAK?! &lt;code&gt;jiraSOAP&lt;/code&gt; was more than 2x slower than &lt;code&gt;jira4r&lt;/code&gt; with
+CRuby; with MacRuby the the performance really bad---a whopping 7x
+slower than &lt;code&gt;jira4r&lt;/code&gt; and more than 3x slower than the equivalent code
+running on CRuby.&lt;/p&gt;
+
+&lt;p&gt;Experienced MacRuby users will probably suggest that such low
+performance is a result of lots and lots of memory
+allocations---programs that allocate a lot of memory will usually be
+slower on MacRuby. Using that intuition I began tracing through the
+parsing logic and found that the problem was how each &lt;code&gt;Issue&lt;/code&gt; was
+being initialized.&lt;/p&gt;
+
+&lt;div&gt;&lt;figure role=code&gt;&lt;figcaption&gt;&lt;span&gt;bad_code.rb &lt;/span&gt;&lt;/figcaption&gt;
+ &lt;div class=&quot;highlight&quot;&gt;&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre class=&quot;line-numbers&quot;&gt;&lt;span class='line'&gt;1&lt;/span&gt;
+&lt;span class='line'&gt;2&lt;/span&gt;
+&lt;span class='line'&gt;3&lt;/span&gt;
+&lt;span class='line'&gt;4&lt;/span&gt;
+&lt;span class='line'&gt;5&lt;/span&gt;
+&lt;span class='line'&gt;6&lt;/span&gt;
+&lt;span class='line'&gt;7&lt;/span&gt;
+&lt;span class='line'&gt;8&lt;/span&gt;
+&lt;span class='line'&gt;9&lt;/span&gt;
+&lt;span class='line'&gt;10&lt;/span&gt;
+&lt;span class='line'&gt;11&lt;/span&gt;
+&lt;span class='line'&gt;12&lt;/span&gt;
+&lt;span class='line'&gt;13&lt;/span&gt;
+&lt;span class='line'&gt;14&lt;/span&gt;
+&lt;span class='line'&gt;15&lt;/span&gt;
+&lt;span class='line'&gt;16&lt;/span&gt;
+&lt;span class='line'&gt;17&lt;/span&gt;
+&lt;span class='line'&gt;18&lt;/span&gt;
+&lt;span class='line'&gt;19&lt;/span&gt;
+&lt;span class='line'&gt;20&lt;/span&gt;
+&lt;span class='line'&gt;21&lt;/span&gt;
+&lt;span class='line'&gt;22&lt;/span&gt;
+&lt;span class='line'&gt;23&lt;/span&gt;
+&lt;span class='line'&gt;24&lt;/span&gt;
+&lt;span class='line'&gt;25&lt;/span&gt;
+&lt;span class='line'&gt;26&lt;/span&gt;
+&lt;span class='line'&gt;27&lt;/span&gt;
+&lt;span class='line'&gt;28&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;td class='code' width='100%'&gt;&lt;pre&gt;&lt;code class='rb'&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;initialize_with_xml_fragment&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;frag&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;k&quot;&gt;super&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;frag&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@summary&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@description&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@type_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@status_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@assignee_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@reporter_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@priority_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@project_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@resolution_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@environment&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@votes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@last_updated&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@create_date&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@due_date&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@affects_versions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@fix_versions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@components&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@custom_field_values&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@attachment_names&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;      &lt;span class=&quot;n&quot;&gt;frag&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nodes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;key&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                 &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;summary&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;             &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;description&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;         &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;status&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;              &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;assignee&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;            &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;reporter&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;            &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;priority&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;            &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;project&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;             &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;resolution&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;          &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;environment&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;         &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;votes&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;               &lt;span class=&quot;ss&quot;&gt;:to_i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;updated&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;             &lt;span class=&quot;ss&quot;&gt;:to_date&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;created&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;             &lt;span class=&quot;ss&quot;&gt;:to_date&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;duedate&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;             &lt;span class=&quot;ss&quot;&gt;:to_date&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;affectsVersions/*&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;   &lt;span class=&quot;ss&quot;&gt;:to_objects&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;JIRA&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Version&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;fixVersions/*&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;       &lt;span class=&quot;ss&quot;&gt;:to_objects&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;JIRA&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Version&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;components/*&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;        &lt;span class=&quot;ss&quot;&gt;:to_objects&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;JIRA&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Component&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;customFieldValues/*&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:to_objects&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;JIRA&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CustomFieldValue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;attachmentNames/*&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;   &lt;span class=&quot;ss&quot;&gt;:to_ss&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/figure&gt;&lt;/div&gt;
+
+&lt;p&gt;A quick glance at the code will tell you that it has to &lt;code&gt;dup&lt;/code&gt; each
+array and each element of the array for each call. But wait, it gets
+worse! Those strings are used in an the XPath query which is run on
+the same XML fragment for each attribute. The symbol elements are then
+used as the name of the transformer to be used on the XML node's inner
+text; the data transformers could be simple and just take the
+string from the inner text, or end up triggering the
+initialization of more objects that needed to be parsed
+(&lt;code&gt;#to_objects&lt;/code&gt;), or it could initialize an array of Nazi soldiers
+(&lt;code&gt;#to_ss&lt;/code&gt;).&lt;/p&gt;
+
+&lt;p&gt;So for each issue, the virtual machine was constantly reallocating a
+lot of constant data, and re-walking the XML fragment for each XPath
+query. That makes two separate problems that should be fixable and
+which will undoubtedly improve performance and get rid of some
+repetitive code.&lt;/p&gt;
+
+&lt;h2&gt;Plan of Attack&lt;/h2&gt;
+
+&lt;p&gt;To fix iterating through the XML fragment for each attribute, I had to
+stop using XPath. While XPath is easier to use it was a bad fit in the
+first place since data from every node of the fragment was being
+used. I'd say that putting XPath in the recommended steps without a
+caveat was a bit misleading.&lt;/p&gt;
+
+&lt;p&gt;Some quick research revealed that the best choice for this problem was
+a &lt;a href=&quot;http://en.wikipedia.org/wiki/XML#Pull_parsing&quot;&gt;pull parser&lt;/a&gt; since
+it only iterates over the fragment once. The important thing to note
+here is that this change will cause the logic to switch
+around---instead of getting each attribute to ask for some XML it will
+now get each XML node to ask for an attribute. What makes this faster
+is that asking for a node required the use of XPath whereas asking for
+an attribute could be as simple as a hash look up.&lt;/p&gt;
+
+&lt;p&gt;Given that the XML should be highly structured, I could have iterated
+through both the XML nodes and an array with the attribute names to
+just match the nodes and attributes up; however I was not to sure on
+the ordering of nodes with respect to sub-classing, perhaps it was in
+alphabetical order, but I would have to go through the WSDL, and also
+the XML dump for each type to be sure. Since I didn't want to do that
+I took a potential performance hit and used a hash where the node name
+corresponded to a key.&lt;/p&gt;
+
+&lt;p&gt;Using this new strategy, the parsing logic was totally generic and I
+refactored initialization of all XML entities to a common method:&lt;/p&gt;
+
+&lt;div&gt;&lt;figure role=code&gt;&lt;figcaption&gt;&lt;span&gt;init.rb &lt;/span&gt;&lt;/figcaption&gt;
+ &lt;div class=&quot;highlight&quot;&gt;&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre class=&quot;line-numbers&quot;&gt;&lt;span class='line'&gt;1&lt;/span&gt;
+&lt;span class='line'&gt;2&lt;/span&gt;
+&lt;span class='line'&gt;3&lt;/span&gt;
+&lt;span class='line'&gt;4&lt;/span&gt;
+&lt;span class='line'&gt;5&lt;/span&gt;
+&lt;span class='line'&gt;6&lt;/span&gt;
+&lt;span class='line'&gt;7&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;td class='code' width='100%'&gt;&lt;pre&gt;&lt;code class='rb'&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;initialize_with_xml&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;frag&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;n&quot;&gt;attributes&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;parse&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;n&quot;&gt;frag&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;children&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;each&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;      &lt;span class=&quot;n&quot;&gt;action&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;attributes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;      &lt;span class=&quot;nb&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;action&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;action&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;action&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/figure&gt;&lt;/div&gt;
+
+&lt;p&gt;Each class had its own parse map, and you can see from the code
+snippet. By declaring attributes using a &lt;code&gt;data-mapper&lt;/code&gt; style of class
+method, the maps were built up for each class. The interesting part
+was getting inheritance working for parse maps; at first I had the
+obvious solution which looked a bit hacky but then I learned about
+some rarely used methods in ruby.&lt;/p&gt;
+
+&lt;h3&gt;Ruby's Less Frequently Used Metaprogramming Callbacks&lt;/h3&gt;
+
+&lt;p&gt;&lt;code&gt;Class#inherited&lt;/code&gt;, &lt;code&gt;Module#included&lt;/code&gt;, and &lt;code&gt;Module#extended&lt;/code&gt; are
+callbacks which are executed each time a Class/Module is subclassed,
+included, or extended. You can override the default implementation,
+which is an empty method, to provide custom inheritance/mixin rules.&lt;/p&gt;
+
+&lt;p&gt;This turns logic that looks like this:&lt;/p&gt;
+
+&lt;div&gt;&lt;figure role=code&gt;&lt;figcaption&gt;&lt;span&gt;inherited.rb &lt;/span&gt;&lt;/figcaption&gt;
+ &lt;div class=&quot;highlight&quot;&gt;&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre class=&quot;line-numbers&quot;&gt;&lt;span class='line'&gt;1&lt;/span&gt;
+&lt;span class='line'&gt;2&lt;/span&gt;
+&lt;span class='line'&gt;3&lt;/span&gt;
+&lt;span class='line'&gt;4&lt;/span&gt;
+&lt;span class='line'&gt;5&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;td class='code' width='100%'&gt;&lt;pre&gt;&lt;code class='rb'&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;property&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;attr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;transformer&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@parse&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;superclass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dup&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/figure&gt;&lt;/div&gt;
+
+&lt;p&gt;into a one line method like this:&lt;/p&gt;
+
+&lt;div&gt;&lt;figure role=code&gt;&lt;figcaption&gt;&lt;span&gt;inherited.rb &lt;/span&gt;&lt;/figcaption&gt;
+ &lt;div class=&quot;highlight&quot;&gt;&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre class=&quot;line-numbers&quot;&gt;&lt;span class='line'&gt;1&lt;/span&gt;
+&lt;span class='line'&gt;2&lt;/span&gt;
+&lt;span class='line'&gt;3&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;td class='code' width='100%'&gt;&lt;pre&gt;&lt;code class='rb'&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;inherited&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subclass&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;n&quot;&gt;subclass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;parse&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@parse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dup&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/figure&gt;&lt;/div&gt;
+
+&lt;p&gt;Which I think is much nicer since it separates the logic of inheriting
+a parse map from adding a new property. It is also faster since it
+does not need to check if the value is already initialized which is a
+savings of a couple hundred checks at boot time.&lt;/p&gt;
+
+&lt;p&gt;I found out about this callback when I was going over the
+&lt;a href=&quot;https://github.com/ferrous26/hotcocoa/blob/master/lib/hotcocoa/behaviors.rb&quot;&gt;HotCocoa::Behaviors&lt;/a&gt;
+module, but I have since also found out that it is the technique used
+by &lt;code&gt;minitest&lt;/code&gt; in order to keep track of which classes have tests.&lt;/p&gt;
+
+&lt;h2&gt;Jumping Back To The Numbers&lt;/h2&gt;
+
+&lt;p&gt;With the new parsing logic, how do the two gems stack up?&lt;/p&gt;
+
+&lt;p&gt;&lt;img class='' src='http://ferrous26.github.com/images/jiraSOAP_0.7.1_vs_jira4r.png' width='' height='' alt='' title=''&gt;&lt;/p&gt;
+
+&lt;p&gt;About a 2x improvement! CRuby &lt;code&gt;jiraSOAP&lt;/code&gt; is just a bit slower
+than &lt;code&gt;jira4r&lt;/code&gt;, and MacRuby &lt;code&gt;jiraSOAP&lt;/code&gt; is about as fast as CRuby
+&lt;code&gt;jiraSOAP&lt;/code&gt; was before the change.&lt;/p&gt;
+
+&lt;p&gt;Given the performance gap, I still suspected the issue is that there
+are too many allocations somewhere, but probably not in my code
+anymore. That is when I started looking into &lt;code&gt;handsoap&lt;/code&gt;'s source code
+to see what goes on when I parse XML.&lt;/p&gt;
+
+&lt;p&gt;It turns out that their parsing abstraction was the gold mine I should
+have been looking for earlier. Specifically, their method for getting
+the inner text of an XML node,
+&lt;a href=&quot;http://rdoc.info/gems/handsoap/1.1.8/Handsoap/XmlQueryFront/NokogiriDriver#to_s-instance_method&quot;&gt;#to_s&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;That method does a bit of work to handle cases that are not relevant to
+&lt;code&gt;jiraSOAP&lt;/code&gt;, but that detail is very minor when compared to calling
+&lt;a href=&quot;http://rdoc.info/gems/nokogiri/1.5.0/Nokogiri/XML/Node#serialize-instance_method&quot;&gt;Node#serialize&lt;/a&gt;
+in &lt;code&gt;nokogiri&lt;/code&gt; which ends up unpacking two options hashes before it
+gets to the point of extracting the inner text, which then returns to
+&lt;code&gt;handsoap&lt;/code&gt; so that it can run 5 chained &lt;code&gt;#gsub&lt;/code&gt; calls.&lt;/p&gt;
+
+&lt;p&gt;The real kicker is that all the data transformers call&lt;code&gt;#to_s&lt;/code&gt; first to
+get the nodes inner text. For an issue with 21 attributes, including
+nested structures, that is at least 21 calls to &lt;code&gt;#to_s&lt;/code&gt; which
+allocates, among other things, the following:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;#to_s&lt;/code&gt;
+
+&lt;ul&gt;
+&lt;li&gt;a Hash for options with a Symbol to String key-value pair (3)&lt;/li&gt;
+&lt;li&gt;5 &lt;code&gt;gsub&lt;/code&gt; calls with literal String arguments that need to be duped
+(15)&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;#serialize&lt;/code&gt;
+
+&lt;ul&gt;
+&lt;li&gt;a String to setup the encoding information (1)&lt;/li&gt;
+&lt;li&gt;a StringIO to buffer the inner text into the string that was setup
+before (1)&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;#write_to&lt;/code&gt;
+
+&lt;ul&gt;
+&lt;li&gt;a String will have to be duped for the &lt;code&gt;indent_text&lt;/code&gt; option in
+this case (1)&lt;/li&gt;
+&lt;li&gt;a SaveOptions object (1)&lt;/li&gt;
+&lt;li&gt;a String that will be created by &lt;code&gt;indent_text * indent_times&lt;/code&gt; (1)&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;That is at least 23 unneeded allocations per call of &lt;code&gt;#to_s&lt;/code&gt;, which
+is 483 allocations per issue object and 483,000 allocations for the
+1000 issue sample.&lt;/p&gt;
+
+&lt;p&gt;Keep in mind that that number is for the minimum number of attributes,
+an issue has two arrays of &lt;code&gt;Version&lt;/code&gt; objects, one for affected
+versions and one for fix versions, and each version has 6 attributes;
+issues also have an array of &lt;code&gt;CustomFieldValue&lt;/code&gt; objects with 3
+attributes each and issues also have an array of attachment name
+strings.. Realistically, most issues will have an affects version and
+probably a fix version; many databases also use custom field. So
+483,000 allocations is actually a conservative estimate and the real
+number of wasteful allocations is is well over 500,000.&lt;/p&gt;
+
+&lt;h3&gt;Fixing The Problem&lt;/h3&gt;
+
+&lt;p&gt;Fixing things in &lt;code&gt;handsoap&lt;/code&gt; was a possibility, but I had already
+opened a pull request in which the &lt;code&gt;handsoap&lt;/code&gt; devs were responding
+too infrequently. I decided that &lt;code&gt;handsoap&lt;/code&gt; was unfairly allocated
+some resources that I wanted and I took upon myself to fix the problem
+by liberating the oppressed methods---I went freedom patching.&lt;/p&gt;
+
+&lt;p&gt;As mentioned earlier, I didn't need code to handle any of the special
+cases. I also think that calling &lt;code&gt;gsub&lt;/code&gt; to swap out escaped characters
+is a waste since the data will end up in an HTML document more often
+than not.&lt;/p&gt;
+
+&lt;p&gt;It turns out I can just call
+&lt;a href=&quot;http://rdoc.info/gems/nokogiri/1.5.0/Nokogiri/XML/Node#content-instance_method&quot;&gt;Node#content&lt;/a&gt;
+to get the inner text of an XML node. That method doesn't do any of
+unnecessary work that I outlined earlier, it doesn't even enforce an
+encoding.&lt;/p&gt;
+
+&lt;h2&gt;Newest Numbers&lt;/h2&gt;
+
+&lt;p&gt;How do the performance numbers look after bypassing the extraneous
+code paths of &lt;code&gt;handsoap&lt;/code&gt;?&lt;/p&gt;
+
+&lt;p&gt;&lt;img class='' src='http://ferrous26.github.com/images/jiraSOAP_0.9.0_vs_jira4r.png' width='' height='' alt='' title=''&gt;&lt;/p&gt;
+
+&lt;p&gt;Really good! &lt;code&gt;jiraSOAP&lt;/code&gt; on CRuby now runs so much faster that the
+scaling for the graphs is all messed up. Even &lt;code&gt;jiraSOAP&lt;/code&gt; on MacRuby is
+now faster than &lt;code&gt;jira4r&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;I also haven't had any bugs logged related to encoding problems or
+escaped characters, so I think this is a big win. I even went and
+benchmarked past 1000 issues.&lt;/p&gt;
+
+&lt;h3&gt;How Does It Scale?&lt;/h3&gt;
+
+&lt;p&gt;&lt;img class='' src='http://ferrous26.github.com/images/jiraSOAP_0.9.0_past_1000.png' width='' height='' alt='' title=''&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;jiraSOAP&lt;/code&gt; can now parse ~2250 issues/s, which is ~10MB/s, which I
+think is pretty good. It also looks like the new lazy-sweep GC changes
+in ruby 1.9.3 kick in somewhere between 3000-4000 issues which is very
+cool.&lt;/p&gt;
+
+&lt;p&gt;The parsing can still get faster without resorting to C (nokogiri
+excepted); there are other solutions I have not tried yet because I
+haven't had the time lately.&lt;/p&gt;
+
+&lt;p&gt;One such solution would be to cache the XML fragment and only parse it
+on demand. I would have to go back to XPath in this case, but since
+parsing is not done until needed it will get the standard laziness
+trade off of maybe never having to parse the XML and saving
+potentially many allocations.&lt;/p&gt;
+
+&lt;p&gt;Benchmarking such a change would be more challenging since it would
+need to take into account a much larger sample of the different ways
+in which people are using &lt;code&gt;jiraSOAP&lt;/code&gt;; how man attributes are used
+normally and how often?&lt;/p&gt;
+
+&lt;p&gt;Then there is the memory-time trade off to consider, the XML document
+is, at some level, a very large string, which is not nearly as memory
+efficient as the structures the data would be parsed into and would
+be expensive to keep around for a long period of time.&lt;/p&gt;
+
+&lt;p&gt;The lack of understanding on how other people use the gem is the
+reason why it would be difficult to tell whether or not it would be
+faster in the general case or at least worth the memory trade off. I
+know at least one person was using the gem as part of a rails app,
+but I don't know if it was a main component or simply a way
+to log bugs when errors occurred.&lt;/p&gt;
+
+&lt;p&gt;I could at least go as far as to find the threshold at which it
+becomes worthwhile by actually implementing the change, but I don't
+have the time right now and at this point the performance bottleneck
+is probably not parsing anymore.&lt;/p&gt;
+
+&lt;h2&gt;Next Steps&lt;/h2&gt;
+
+&lt;p&gt;The real performance bottleneck now is the use of &lt;code&gt;net/http&lt;/code&gt; for the
+networking layer. With CRuby you can easily tell &lt;code&gt;handsoap&lt;/code&gt; to use a
+different back end for HTTP communication. &lt;code&gt;curb&lt;/code&gt; is &lt;code&gt;handsoap&lt;/code&gt;'s
+recommended back end and is much faster than &lt;code&gt;net/http&lt;/code&gt;, but it is not
+compatible with MacRuby which is why I changed the default to
+&lt;code&gt;net/http&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;If you are using CRuby then you are better off switching to &lt;code&gt;curb&lt;/code&gt; or
+&lt;code&gt;httpclient&lt;/code&gt; after loading &lt;code&gt;jiraSOAP&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div&gt;&lt;figure role=code&gt;&lt;figcaption&gt;&lt;span&gt;switch.rb &lt;/span&gt;&lt;/figcaption&gt;
+ &lt;div class=&quot;highlight&quot;&gt;&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre class=&quot;line-numbers&quot;&gt;&lt;span class='line'&gt;1&lt;/span&gt;
+&lt;span class='line'&gt;2&lt;/span&gt;
+&lt;span class='line'&gt;3&lt;/span&gt;
+&lt;span class='line'&gt;4&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;td class='code' width='100%'&gt;&lt;pre&gt;&lt;code class='rb'&gt;&lt;div class='line'&gt;  &lt;span class=&quot;nb&quot;&gt;require&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;jiraSOAP&amp;#39;&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;no&quot;&gt;Handsoap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;http_driver&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:http_client&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;c1&quot;&gt;# or&lt;/span&gt;
+&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;no&quot;&gt;Handsoap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;http_driver&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:curb&lt;/span&gt;
+&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/figure&gt;&lt;/div&gt;
+
+&lt;p&gt;You can also use &lt;code&gt;eventmachine&lt;/code&gt; with &lt;code&gt;handsoap&lt;/code&gt;, but it will not work
+with &lt;code&gt;jiraSOAP&lt;/code&gt; out of the box, you would need to reimplement the 4
+private methods in &lt;code&gt;lib/jiraSOAP/api.rb&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;In the future I think I will be able to release the gem once for each
+&lt;code&gt;RUBY_ENGINE&lt;/code&gt; so that each ruby can have proper defaults. It would
+also be nice to have a MacRuby specific back end that uses Cocoa for
+the networking layer.&lt;/p&gt;
+
+&lt;p&gt;Though, by this time next year I expect that the JIRA REST API will
+have caught up to the SOAP API and &lt;code&gt;jiraSOAP&lt;/code&gt; will become
+obsolete. For this reason I don't think I will be spending too much
+more time on this project. Besides, &lt;code&gt;jiraSOAP&lt;/code&gt; now implements 99% of
+the API that I care about and the implementation is simple enough and
+stable enough to have other APIs easily added by people who want
+them.&lt;/p&gt;
+</content>
+  </entry>
   
   <entry>
     <title>First!</title>
@@ -25,7 +592,7 @@ could never find a topic that I wanted to publicly write about.&lt;/p&gt;
 &lt;p&gt;Possibilities:&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;annoucements of things that I am working on&lt;/li&gt;
+&lt;li&gt;announcements of things that I am working on&lt;/li&gt;
 &lt;li&gt;interesting tech that I am playing with&lt;/li&gt;
 &lt;li&gt;topics related to school work&lt;/li&gt;
 &lt;/ul&gt;
