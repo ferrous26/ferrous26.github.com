@@ -4,13 +4,21 @@
   <title>My blog</title>
   <link href="http://ferrous26.github.com/atom.xml" rel="self"/>
   <link href="http://ferrous26.github.com/"/>
-  <updated>2011-08-22T00:23:22-04:00</updated>
+  <updated>2011-08-22T10:02:38-04:00</updated>
   <id>http://ferrous26.github.com/</id>
   <author>
     <name>Mark Rada</name>
     
   </author>
 
+  
+  <entry>
+    <title>Macruby Boot Time</title>
+    <link href="http://ferrous26.github.com/blog/2011/08/31/macruby-boot-time/"/>
+    <updated>2011-08-31T00:00:00-04:00</updated>
+    <id>http://ferrous26.github.com/blog/2011/08/31/macruby-boot-time</id>
+    <content type="html"></content>
+  </entry>
   
   <entry>
     <title>jiraSOAP 0.9</title>
@@ -21,9 +29,9 @@
 &lt;a href=&quot;http://github.com/Marketcircle/jiraSOAP&quot;&gt;jiraSOAP&lt;/a&gt; gem. &lt;code&gt;jiraSOAP&lt;/code&gt;
 0.9 is a milestone release for a few reasons, namely stability and
 motivation. Stability, I think, is a reflection of my journey from
-knowing very little Ruby to being to pass myself off as knowing a
-thing or two. This blog is about one the adventures I had with
-developing &lt;code&gt;jiraSOAP&lt;/code&gt;.&lt;/p&gt;
+knowing little Ruby to being to pass myself off as knowing a thing or
+two. This blog is about an adventure I had with developing
+&lt;code&gt;jiraSOAP&lt;/code&gt;.&lt;/p&gt;
 
 &lt;!--more--&gt;
 
@@ -32,20 +40,20 @@ developing &lt;code&gt;jiraSOAP&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;&lt;code&gt;jiraSOAP&lt;/code&gt; is my first real ruby project and it was how I learned ruby
 basics. My earlier experiences with ruby were small scripts to access
 the bug tracker at work and I was using a gem called
-&lt;a href=&quot;https://github.com/tastyhat/jira4r&quot;&gt;jira4r&lt;/a&gt; in order to communicate
-with the bug tracker. However, this gem was limited in a few ways that
-became very irritating. It had no APIs from JIRA 4.x; the API it did
-expose was ugly and inflexible; and the gem could not run on Ruby
-1.9 and thus could not run on MacRuby, which is a technology that my
-boss suggested looking into.&lt;/p&gt;
+&lt;a href=&quot;https://github.com/tastyhat/jira4r&quot;&gt;jira4r&lt;/a&gt; to communicate with the
+bug tracker. This gem was limited in a few ways that became very
+irritating. It had no APIs from JIRA 4.x; the API it did expose was
+ugly and inflexible; and the gem does not run on Ruby 1.9 and thus
+could not run on MacRuby, which is a technology that my boss suggested
+looking into.&lt;/p&gt;
 
 &lt;p&gt;At the time, JIRA was beginning to develop a REST API, but it was
-pre-alpha quality. The available resources were very limited and were
+pre-alpha quality. The available resources were limited and
 read-only. On the other hand the still supported, but not actively
 developed, SOAP interface had APIs for almost everything.&lt;/p&gt;
 
 &lt;p&gt;Enter &lt;a href=&quot;https://github.com/unwire/handsoap&quot;&gt;handsoap&lt;/a&gt;, a gem that
-promised a fairly easy way to make a custom wrapper around a SOAP API
+promised an easy way to make a custom wrapper around a SOAP API
 that would be very fast. As it turns out, the speed part was
 overly optimistic, but I'll get to that later. The important feature
 was that I could customize the API that I provided instead of simply
@@ -54,8 +62,8 @@ generating something from the WSDL.&lt;/p&gt;
 &lt;p&gt;After a couple of weeks of playing with the library (it was far from
 my primary concern at work), I had a working predecessor to
 &lt;code&gt;jiraSOAP&lt;/code&gt;. At this point I asked my boss if we could open source my
-work so far; that way I would work on it more after hours and other
-people could use and hopefully contribute to the project as well.&lt;/p&gt;
+work; that way I would work on it more after hours and other people
+could use and hopefully contribute to the project as well.&lt;/p&gt;
 
 &lt;h2&gt;jiraSOAP's Early OSS Days&lt;/h2&gt;
 
@@ -452,13 +460,13 @@ this case (1)&lt;/li&gt;
 is 483 allocations per issue object and 483,000 allocations for the
 1000 issue sample.&lt;/p&gt;
 
-&lt;p&gt;Keep in mind that that number is for the minimum number of attributes,
+&lt;p&gt;Keep in mind that that number is for the minimum number of attributes;
 an issue has two arrays of &lt;code&gt;Version&lt;/code&gt; objects, one for affected
 versions and one for fix versions, and each version has 6 attributes;
 issues also have an array of &lt;code&gt;CustomFieldValue&lt;/code&gt; objects with 3
-attributes each and issues also have an array of attachment name
-strings.. Realistically, most issues will have an affects version and
-probably a fix version; many databases also use custom field. So
+attributes each; and issues also have an array of attachment name
+strings. Realistically, most issues will have an affects version and
+probably a fix version; many databases also use custom field.
 483,000 allocations is actually a conservative estimate and the real
 number of wasteful allocations is is well over 500,000.&lt;/p&gt;
 
@@ -475,7 +483,7 @@ cases. I also think that calling &lt;code&gt;gsub&lt;/code&gt; to swap out escap
 is a waste since the data will end up in an HTML document more often
 than not.&lt;/p&gt;
 
-&lt;p&gt;It turns out I can just call
+&lt;p&gt;After checking, I found that I could just call
 &lt;a href=&quot;http://rdoc.info/gems/nokogiri/1.5.0/Nokogiri/XML/Node#content-instance_method&quot;&gt;Node#content&lt;/a&gt;
 to get the inner text of an XML node. That method doesn't do any of
 unnecessary work that I outlined earlier, it doesn't even enforce an
@@ -500,7 +508,7 @@ benchmarked past 1000 issues.&lt;/p&gt;
 
 &lt;p&gt;&lt;img class='' src='http://ferrous26.github.com/images/jiraSOAP_0.9.0_past_1000.png' width='' height='' alt='' title=''&gt;&lt;/p&gt;
 
-&lt;p&gt;&lt;code&gt;jiraSOAP&lt;/code&gt; can now parse ~2250 issues/s, which is ~10MB/s, which I
+&lt;p&gt;&lt;code&gt;jiraSOAP&lt;/code&gt; now parses ~2250 issues/s, which is ~10MB/s, which I
 think is pretty good. It also looks like the new lazy-sweep GC changes
 in ruby 1.9.3 kick in somewhere between 3000-4000 issues which is very
 cool.&lt;/p&gt;
@@ -571,11 +579,10 @@ the networking layer.&lt;/p&gt;
 
 &lt;p&gt;Though, by this time next year I expect that the JIRA REST API will
 have caught up to the SOAP API and &lt;code&gt;jiraSOAP&lt;/code&gt; will become
-obsolete. For this reason I don't think I will be spending too much
-more time on this project. Besides, &lt;code&gt;jiraSOAP&lt;/code&gt; now implements 99% of
-the API that I care about and the implementation is simple enough and
-stable enough to have other APIs easily added by people who want
-them.&lt;/p&gt;
+obsolete. So I don't think I will be spending too much more time on
+this project. Besides, &lt;code&gt;jiraSOAP&lt;/code&gt; now implements 99% of the API that I
+care about and the implementation is simple enough and stable enough
+to have other APIs easily added by users who want them.&lt;/p&gt;
 </content>
   </entry>
   

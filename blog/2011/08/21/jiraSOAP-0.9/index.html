@@ -105,9 +105,9 @@
 <a href="http://github.com/Marketcircle/jiraSOAP">jiraSOAP</a> gem. <code>jiraSOAP</code>
 0.9 is a milestone release for a few reasons, namely stability and
 motivation. Stability, I think, is a reflection of my journey from
-knowing very little Ruby to being to pass myself off as knowing a
-thing or two. This blog is about one the adventures I had with
-developing <code>jiraSOAP</code>.</p>
+knowing little Ruby to being to pass myself off as knowing a thing or
+two. This blog is about an adventure I had with developing
+<code>jiraSOAP</code>.</p>
 
 <!--more-->
 
@@ -116,20 +116,20 @@ developing <code>jiraSOAP</code>.</p>
 <p><code>jiraSOAP</code> is my first real ruby project and it was how I learned ruby
 basics. My earlier experiences with ruby were small scripts to access
 the bug tracker at work and I was using a gem called
-<a href="https://github.com/tastyhat/jira4r">jira4r</a> in order to communicate
-with the bug tracker. However, this gem was limited in a few ways that
-became very irritating. It had no APIs from JIRA 4.x; the API it did
-expose was ugly and inflexible; and the gem could not run on Ruby
-1.9 and thus could not run on MacRuby, which is a technology that my
-boss suggested looking into.</p>
+<a href="https://github.com/tastyhat/jira4r">jira4r</a> to communicate with the
+bug tracker. This gem was limited in a few ways that became very
+irritating. It had no APIs from JIRA 4.x; the API it did expose was
+ugly and inflexible; and the gem does not run on Ruby 1.9 and thus
+could not run on MacRuby, which is a technology that my boss suggested
+looking into.</p>
 
 <p>At the time, JIRA was beginning to develop a REST API, but it was
-pre-alpha quality. The available resources were very limited and were
+pre-alpha quality. The available resources were limited and
 read-only. On the other hand the still supported, but not actively
 developed, SOAP interface had APIs for almost everything.</p>
 
 <p>Enter <a href="https://github.com/unwire/handsoap">handsoap</a>, a gem that
-promised a fairly easy way to make a custom wrapper around a SOAP API
+promised an easy way to make a custom wrapper around a SOAP API
 that would be very fast. As it turns out, the speed part was
 overly optimistic, but I&#8217;ll get to that later. The important feature
 was that I could customize the API that I provided instead of simply
@@ -138,8 +138,8 @@ generating something from the WSDL.</p>
 <p>After a couple of weeks of playing with the library (it was far from
 my primary concern at work), I had a working predecessor to
 <code>jiraSOAP</code>. At this point I asked my boss if we could open source my
-work so far; that way I would work on it more after hours and other
-people could use and hopefully contribute to the project as well.</p>
+work; that way I would work on it more after hours and other people
+could use and hopefully contribute to the project as well.</p>
 
 <h2>jiraSOAP&#8217;s Early OSS Days</h2>
 
@@ -536,13 +536,13 @@ this case (1)</li>
 is 483 allocations per issue object and 483,000 allocations for the
 1000 issue sample.</p>
 
-<p>Keep in mind that that number is for the minimum number of attributes,
+<p>Keep in mind that that number is for the minimum number of attributes;
 an issue has two arrays of <code>Version</code> objects, one for affected
 versions and one for fix versions, and each version has 6 attributes;
 issues also have an array of <code>CustomFieldValue</code> objects with 3
-attributes each and issues also have an array of attachment name
-strings.. Realistically, most issues will have an affects version and
-probably a fix version; many databases also use custom field. So
+attributes each; and issues also have an array of attachment name
+strings. Realistically, most issues will have an affects version and
+probably a fix version; many databases also use custom field.
 483,000 allocations is actually a conservative estimate and the real
 number of wasteful allocations is is well over 500,000.</p>
 
@@ -559,7 +559,7 @@ cases. I also think that calling <code>gsub</code> to swap out escaped character
 is a waste since the data will end up in an HTML document more often
 than not.</p>
 
-<p>It turns out I can just call
+<p>After checking, I found that I could just call
 <a href="http://rdoc.info/gems/nokogiri/1.5.0/Nokogiri/XML/Node#content-instance_method">Node#content</a>
 to get the inner text of an XML node. That method doesn&#8217;t do any of
 unnecessary work that I outlined earlier, it doesn&#8217;t even enforce an
@@ -584,7 +584,7 @@ benchmarked past 1000 issues.</p>
 
 <p><img class='' src='/images/jiraSOAP_0.9.0_past_1000.png' width='' height='' alt='' title=''></p>
 
-<p><code>jiraSOAP</code> can now parse ~2250 issues/s, which is ~10MB/s, which I
+<p><code>jiraSOAP</code> now parses ~2250 issues/s, which is ~10MB/s, which I
 think is pretty good. It also looks like the new lazy-sweep GC changes
 in ruby 1.9.3 kick in somewhere between 3000-4000 issues which is very
 cool.</p>
@@ -655,11 +655,10 @@ the networking layer.</p>
 
 <p>Though, by this time next year I expect that the JIRA REST API will
 have caught up to the SOAP API and <code>jiraSOAP</code> will become
-obsolete. For this reason I don&#8217;t think I will be spending too much
-more time on this project. Besides, <code>jiraSOAP</code> now implements 99% of
-the API that I care about and the implementation is simple enough and
-stable enough to have other APIs easily added by people who want
-them.</p>
+obsolete. So I don&#8217;t think I will be spending too much more time on
+this project. Besides, <code>jiraSOAP</code> now implements 99% of the API that I
+care about and the implementation is simple enough and stable enough
+to have other APIs easily added by users who want them.</p>
 </div>
 
 
@@ -724,6 +723,10 @@ them.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2011/08/31/macruby-boot-time/">Macruby Boot Time</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2011/08/21/jiraSOAP-0.9/">jiraSOAP 0.9</a>
       </li>
     
@@ -741,7 +744,7 @@ them.</p>
   </ul>
   <script type="text/javascript">
     $.domReady(function(){
-      getTwitterFeed("ferrous26", 3, false);
+      getTwitterFeed("ferrous26", 1, false);
     });
   </script>
   <script src="/javascripts/twitter.js" type="text/javascript"> </script>
