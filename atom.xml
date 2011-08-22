@@ -4,21 +4,13 @@
   <title>My blog</title>
   <link href="http://ferrous26.github.com/atom.xml" rel="self"/>
   <link href="http://ferrous26.github.com/"/>
-  <updated>2011-08-22T10:03:32-04:00</updated>
+  <updated>2011-08-22T16:58:05-04:00</updated>
   <id>http://ferrous26.github.com/</id>
   <author>
     <name>Mark Rada</name>
     
   </author>
 
-  
-  <entry>
-    <title>Macruby Boot Time</title>
-    <link href="http://ferrous26.github.com/blog/2011/08/31/macruby-boot-time/"/>
-    <updated>2011-08-31T00:00:00-04:00</updated>
-    <id>http://ferrous26.github.com/blog/2011/08/31/macruby-boot-time</id>
-    <content type="html"></content>
-  </entry>
   
   <entry>
     <title>jiraSOAP 0.9</title>
