@@ -1,0 +1,831 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Ruby | My blog]]></title>
+  <link href="http://ferrous26.github.com/blog/categories/ruby/atom.xml" rel="self"/>
+  <link href="http://ferrous26.github.com/"/>
+  <updated>2012-04-03T18:56:28-04:00</updated>
+  <id>http://ferrous26.github.com/</id>
+  <author>
+    <name><![CDATA[Mark Rada]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Accessibility: Keyboarding]]></title>
+    <link href="http://ferrous26.github.com/blog/2012/04/03/axelements-part1/"/>
+    <updated>2012-04-03T00:00:00-04:00</updated>
+    <id>http://ferrous26.github.com/blog/2012/04/03/axelements-part1</id>
+    <content type="html"><![CDATA[<p>This is the first article in a short series about the different
+components of
+<a href="https://github.com/Marketcircle/AXElements">AXElements</a>. AXElements
+has been rewritten to be much more modular and now various components
+may be used individually. The keyboard event generator was the first
+component to be polished and released as its own gem.</p>
+
+<!--more-->
+
+<p>Event generation is exposed via the
+<a href="https://github.com/Marketcircle/AXElements/blob/master/lib/accessibility/string.rb">Accessibility::String</a>
+mix-in. Using the mix-in, a simple string of human readable text is
+taken and turned it into a sequence of events which may be fed to one
+of the keyboard event posting APIs provided by OS X.</p>
+
+<p>To get started you will need to have a working Ruby 1.9
+implementation---I've tested this with MRI 1.9.3 and MacRuby (for
+MacRuby you will need a <a href="http://www.macruby.org/files/nightlies/">nightly build</a>).
+Then you can install the <code>AXTyper</code> gem:</p>
+
+<p><code>bash
+gem install AXTyper
+</code></p>
+
+<p>The quickest demonstration of event generation is through <code>irb</code>:</p>
+
+<p><code>ruby
+irb(main):001:0&gt; require 'rubygems'
+=&gt; true
+irb(main):002:0&gt; require 'accessibility/string'
+=&gt; true
+irb(main):003:0&gt; include Accessibility::String
+=&gt; NSObject
+irb(main):004:0&gt; events = keyboard_events_for &quot;Hello, #{ENV['USER']}.&quot;
+=&gt; [[56, true], [38, true], [38, false], [56, false], [2, true],
+ [2, false], [35, true], [35, false], [35, true], [35, false],
+ [1, true], [1, false], [13, true], [13, false], [49, true],
+ [49, false], [46, true], [46, false], [31, true], [31, false],
+ [0, true], [0, false], [4, true], [4, false], [0, true], [0, false],
+ [14, true], [14, false]]
+irb(main):005:0&gt;
+</code></p>
+
+<p>And now you have some events! Events are number/boolean tuples;
+the number is a key code and the boolean is the key state; there are
+more details regarding the key code, but I'll get to that later.</p>
+
+<p>Now that we have some events, we should figure out what to do with
+them since they are not of much use on their own. The most useful, and
+easiest, thing to do is post them to the system. This of course comes
+with a caveat: you will actually be causing the keys to be typed out
+to the system and the front most application will receive the events.</p>
+
+<p><strong>Be careful of the string you give to the generator!</strong></p>
+
+<p>The interface for posting events is different depending on if you are
+using MRI or MacRuby. With MacRuby, events can be posted natively in
+Ruby code, but for this demonstration the C extension provided by
+<code>AXTyper</code> includes a singleton method, <code>KeyCoder.post_event</code>, which
+takes a single event and posts it to the system. Using this method we
+can post our events:</p>
+
+<p><code>ruby
+irb(main):005:0&gt; events.each do |event| KeyCoder.post_event event end
+Hello, mrada.=&gt; [[56, true], [38, true], [38, false], [56, false],
+ [2, true], [2, false], [35, true], [35, false], [35, true],
+ [35, false], [1, true], [1, false], [13, true], [13, false],
+ [49, true], [49, false], [46, true], [46, false], [31, true],
+ [31, false], [0, true], [0, false], [4, true], [4, false], [0, true],
+ [0, false], [14, true], [14, false]]
+irb(main):006:0&gt; Hello, mrada.
+</code></p>
+
+<p>You'll notice that typing begins immediately when the <code>post_event</code>
+method is called. Typing is also really fast; in fact, it has to be
+slowed down for practical use.</p>
+
+<p>It may be nicer to wrap generation and posting together and add a
+small time buffer for you to release the enter key:</p>
+
+<p><code>ruby
+def type string
+  sleep 0.1
+  keyboard_events_for(string).each do |event|
+    KeyCoder.post_event event
+  end
+end
+</code></p>
+
+<p>Now let's try something a bit more complicated:</p>
+
+<p><code>ruby
+type &quot;\\CONTROL+l `say 'ZOMG'`\n&quot;
+</code></p>
+
+<h2>A Little More Depth</h2>
+
+<p>So what's going on here? On the AXElements side of things there is just
+a basic lexer and generator. The lexer tokenizes the string input and
+the generator takes the tokens and generates one or more pairs of
+event tuples. The interesting detail is that a set of escape sequences
+for control keys has been added.</p>
+
+<h4>Lexing</h4>
+
+<p>Strings fed to the lexer support an extra set of escape sequences for
+the control keys like Control, Option, Command, etc.. The last example
+above used the <code>&quot;\\CONTROL&quot;</code> escape sequence to represent the left
+control key. Other than those special sequences, string formatting
+is straight forward and you can use all the letters, numbers, and
+symbols that you would in any other string. Uppercasing letters is
+automatically handled for you and so are all of the symbols that you
+would have to hold down the shift or option key in order to
+type. White space and line breaks in strings will get turned into
+tabs, spaces, and return/enter, and delete key presses appropriately,
+but you can also use <code>&quot;\t&quot;</code>, <code>&quot;\s&quot;</code>, <code>&quot;\r&quot;</code>, <code>&quot;\n&quot;</code>, and <code>&quot;\b&quot;</code> as you
+would in any other string.</p>
+
+<p>Once the lexer is done lexing, its output is fed into the generator.</p>
+
+<h4>Event Generation</h4>
+
+<p>The event generator inspects each token and figures out what events
+need to be generated in order type the token.</p>
+
+<p>As mentioned above, events are number/boolean tuples. They are fed to
+the
+<a href="http://developer.apple.com/library/mac/#documentation/Carbon/Reference/QuartzEventServicesRef/Reference/reference.html">CGEventCreateKeyboardEvent()</a>
+function that is used in the above examples. The function takes a key
+code and a key state as parameters and so each event pair is simply
+what is required to be passed to that function.</p>
+
+<p>Key codes are a mapping of numbers to keys on the keyboard; some
+mappings are static, such as the control keys; and some mappings are
+dynamic based on the keyboard layout. Since a code refers to a
+physical key and not the particular symbol they represent, upper case
+letters require the generation of events for pressing either the shift
+key before hitting the lower case letter.</p>
+
+<p>The key state is simply a boolean value with <code>true</code> meaning that the
+key is in the keydown state and <code>false</code> meaning that the key is in the
+keyup state. This makes it possible to hold down the shift key and
+then press the <code>&quot;a&quot;</code> key to generate an <code>&quot;A&quot;</code>; it also makes it
+possible to simulate hotkeys and symbols.</p>
+
+<h5>Symbols</h5>
+
+<p>Symbols such as <code>&quot;!&quot;</code>, <code>&quot;∑&quot;</code>, and <code>&quot;]&quot;</code> are all supported by the event
+generator. Any symbol that you can type directly using one or more
+keys should <strong>Just Work™</strong>. Some contrived examples might look like
+this snippet:</p>
+
+<p><code>ruby
+type &quot;@hash = { a: '∑', b: '™' }\n&quot;
+type &quot;@hash.merge! { c: '£', d: '¢' }\n&quot;
+type &quot;@hash.inspect\n&quot;
+</code></p>
+
+<p>A caveat to this is that some symbols can be on the keyboard twice,
+the obvious cases are the mathematical operations and numbers. The
+event generator does not use the keypad for plain symbols in
+strings. To use the keypad keys specifically you will need to use
+custom escape sequences.</p>
+
+<h5>Escape Characters</h5>
+
+<p>As mentioned above, standard escape codes (e.g. <code>&quot;\n&quot;</code>, <code>&quot;\t&quot;</code>) all still
+work, even using <code>&quot;\b&quot;</code> as the delete key. On top of the built in escape
+sequences, the lexer and generator have added an additional set of
+escape sequences for control keys and other static keys. The full list
+is located in the documentation
+<a href="http://rdoc.info/github/Marketcircle/AXElements/master/Accessibility/String/EventGenerator#CUSTOM-constant">here</a>,
+but the naming convention should be obvious enough after a small
+demonstration.</p>
+
+<p>```ruby
+type &quot;\CONTROL&quot;</p>
+
+<h1>or</h1>
+
+<p>type &quot;\CTRL&quot;</p>
+
+<h1>using built in escape codes</h1>
+
+<p>type &quot;The cake is a lie\b\b\b\b\b\b delicious&quot;</p>
+
+<h1>Use the CMD+a hotkey and then start typing</h1>
+
+<p>type &quot;\COMMAND+a I just deleted everything, didn't I?&quot;</p>
+
+<h1>type one key and then the other</h1>
+
+<p>type &quot;\1 \+ \2 \n&quot;</p>
+
+<h1>type all the keys as a hot key combination</h1>
+
+<p>type &quot;\CMD+\SHIFT+s&quot;</p>
+
+<h1>or</h1>
+
+<p>type &quot;\CMD+S&quot;</p>
+
+<h1>type out a backslash</h1>
+
+<p>type &quot;\&quot;</p>
+
+<h1>type out a fake command key</h1>
+
+<p>type &quot;\CAKE&quot;
+```</p>
+
+<p>There are two rules to using the custom escape sequences. First, a
+custom escape sequence must be terminated by an empty space <em>or</em> the
+end of the string.</p>
+
+<h6>Hot Keys</h6>
+
+<p>The second rule is an exception to the first rule; a custom escape
+sequence can end with a <code>&quot;+&quot;</code> if it is being used in a hot key
+combination and will be immediately followed by another key in the
+combination. In previous examples we combined two and three keys in
+order to make a combination, but an upper limit on the number of keys
+is not defined by the event generator.</p>
+
+<h2>Sending Events To A Specific Application</h2>
+
+<p>Though the easiest way to post events to the system was to use
+<code>CGEventPost()</code>, there are also APIs for posting events to a specific
+application regardless of which application is focused.</p>
+
+<p>The API for doing this is located in the
+<a href="http://developer.apple.com/library/mac/#documentation/Accessibility/Reference/AccessibilityLowlevel/AXUIElement_h">OS X Accessibility headers</a>,
+but requires you to provide a reference to the application where you
+would like to post events. Using the accessibility APIs is a little
+tricky at first, especially in Ruby.</p>
+
+<p>I'll cover Accessibility API basics in the next part of this series:
+&quot;Accessibility: From References To Objects&quot;.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[jiraSOAP 0.9]]></title>
+    <link href="http://ferrous26.github.com/blog/2011/08/21/jiraSOAP-0.9/"/>
+    <updated>2011-08-21T00:00:00-04:00</updated>
+    <id>http://ferrous26.github.com/blog/2011/08/21/jiraSOAP-0.9</id>
+    <content type="html"><![CDATA[<p>A couple of weeks ago I released version 0.9 of the
+<a href="http://github.com/Marketcircle/jiraSOAP">jiraSOAP</a> gem. <code>jiraSOAP</code>
+0.9 is a milestone release for a few reasons, namely stability and
+motivation. Stability, I think, is a reflection of my journey from
+knowing little Ruby to being to pass myself off as knowing a thing or
+two. This blog is about an adventure I had with developing
+<code>jiraSOAP</code>.</p>
+
+<!--more-->
+
+<h2>A Little History</h2>
+
+<p><code>jiraSOAP</code> is my first real ruby project and it was how I learned ruby
+basics. My earlier experiences with ruby were small scripts to access
+the bug tracker at work and I was using a gem called
+<a href="https://github.com/tastyhat/jira4r">jira4r</a> to communicate with the
+bug tracker. This gem was limited in a few ways that became very
+irritating. It had no APIs from JIRA 4.x; the API it did expose was
+ugly and inflexible; and the gem does not run on Ruby 1.9 and thus
+could not run on MacRuby, which is a technology that my boss suggested
+looking into.</p>
+
+<p>At the time, JIRA was beginning to develop a REST API, but it was
+pre-alpha quality. The available resources were limited and
+read-only. On the other hand the still supported, but not actively
+developed, SOAP interface had APIs for almost everything.</p>
+
+<p>Enter <a href="https://github.com/unwire/handsoap">handsoap</a>, a gem that
+promised an easy way to make a custom wrapper around a SOAP API
+that would be very fast. As it turns out, the speed part was
+overly optimistic, but I'll get to that later. The important feature
+was that I could customize the API that I provided instead of simply
+generating something from the WSDL.</p>
+
+<p>After a couple of weeks of playing with the library (it was far from
+my primary concern at work), I had a working predecessor to
+<code>jiraSOAP</code>. At this point I asked my boss if we could open source my
+work; that way I would work on it more after hours and other people
+could use and hopefully contribute to the project as well.</p>
+
+<h2>jiraSOAP's Early OSS Days</h2>
+
+<p>The early days were hectic, I was pretty much rewriting <code>jiraSOAP</code> for
+each release as I learned new things. I even had a silly contribution
+policy warning people about contributions being unlikely to apply
+cleanly.</p>
+
+<p>Part of the problem was that the
+<a href="https://github.com/unwire/handsoap/wiki/Recommendations">recommended practices</a>
+for writing the SOAP client were about as vague as an East Texas
+software patent, or at least the step about refactoring was. I can't
+blame <code>handsoap</code> for that problem, it was my first real ruby project
+and I was still figuring a lot things out.</p>
+
+<p>The logic for building messages was pretty clear and simple, but the
+the parsing logic required a relatively large amount of code from
+me. It was the parsing logic that was changing often due to
+refactoring with the goal of being cleaner and faster.</p>
+
+<h3>How Slow Was It?</h3>
+
+<p><code>handsoap</code> claims to be faster because it can use C
+extensions for HTTP communication and XML parsing, they even supply
+some
+<a href="https://github.com/unwire/handsoap/blob/master/README.markdown">benchmarks</a>
+in the README, though they qualify the benchmarks as being a little
+unfair.</p>
+
+<p>I guess the unfair part is that those numbers were not jiving with my
+personal experience; everything felt much slower than advertised. When I
+looked into it, I found that their benchmark
+<a href="https://github.com/unwire/handsoap/blob/master/tests/benchmark_integration_test.rb">code</a>
+didn't actually do any parsing!</p>
+
+<p>Inspired by
+<a href="http://confreaks.net/videos/427-rubyconf2010-zomg-why-is-this-code-so-slow">&quot;ZOMG WHY IS THIS CODE SO SLOW?&quot;</a>,
+I began my own investigation into why my gem was slow. Though, in my
+case I was working with a smaller and more sane code base.</p>
+
+<p>Step 1 is figuring out what to measure and then step 2 is making the
+baseline measurements. Since I supplied most of the parsing logic, I
+figured that I should measure parsing time. I chose to measure parse
+time for <code>Issue</code> objects since it is the most common type of object
+to work with; but it is also the largest type, weighing in at 21
+attributes, including collections of other data structures that need
+to be parsed.</p>
+
+<p>Before I get to how the measurements were made, I should mention that
+when I originally performed benchmarks that I was not very rigorous
+about collecting data. For the sake of this blog post I went back in
+time and benchmarked things properly. I say properly, but I really
+mean &quot;good enough&quot; for my purposes.</p>
+
+<p>Since I wanted to measure just parsing time, I needed to change the
+<code>jiraSOAP</code> code base a little. The gist shows how to modify the
+<code>jiraSOAP</code> 0.9 code, but the changes needed for an older version are
+almost the same:</p>
+
+<p><div><script src='https://gist.github.com/1144170.js?file=parse_measurement.diff'></script>
+<noscript><pre><code>diff --git a/lib/jiraSOAP/api.rb b/lib/jiraSOAP/api.rb
+index fc0e40d..a0cdf33 100644
+--- a/lib/jiraSOAP/api.rb
++++ b/lib/jiraSOAP/api.rb
+@@ -91,7 +91,10 @@ module JIRA::RemoteAPI
+   # @return [Nokogiri::XML::NodeSet]
+   def array_jira_call type, method, *args
+     response = soap_call method, self.auth_token, *args
++
++    start = Time.now
+     response.xpath('node()').map { |frag| type.new_with_xml(frag) }
++    Time.now - start
+   end
+ 
+ end</code></pre></noscript></div>
+</p>
+
+<p>As a baseline I measured
+<a href="https://github.com/jhollingworth/jira4r-jh">jira4r-jh</a>,  a recent
+fork that includes an API that I wanted to use, but the changes needed
+for measurement happened in <code>soap4r</code>, a dependency:</p>
+
+<p><div><script src='https://gist.github.com/1144170.js?file=soap4r.diff'></script>
+<noscript><pre><code>--- /Library/Ruby/Gems/1.8/gems/soap4r-1.5.8/lib/soap/mapping/mapping.rb	2011-08-14 02:27:33.000000000 -0400
++++ mapping.rb	2011-08-14 02:28:58.000000000 -0400
+@@ -59,11 +59,13 @@
+   end
+ 
+   def self.soap2obj(node, registry = nil, klass = nil, opt = EMPTY_OPT)
++    start = Time.now
+     registry ||= Mapping::DefaultRegistry
+     obj = nil
+     protect_mapping(opt) do
+       obj = _soap2obj(node, registry, klass)
+     end
++    $nums &lt;&lt; Time.now - start
+     obj
+   end
+ </code></pre></noscript></div>
+</p>
+
+<p>Instead of using <code>benchmark</code> or <code>minitest</code>, I opted to just write a
+small script:</p>
+
+<p><div><script src='https://gist.github.com/1144170.js?file=bench.rb'></script>
+<noscript><pre><code>require 'rubygems'
+require 'jiraSOAP'
+
+# I changed the URL and credentials as they are sensitive infos
+$db = JIRA::JIRAService.new 'http://jira.domain.com:8080' 
+$db.login 'mark', 'password'
+at_exit { $db.logout }
+
+def bench_it issues, iterations
+  times = []
+  iterations.times do
+    # use #get_ so it is compatible with older versions
+    times &lt;&lt; $db.get_issues_from_jql_search('key &gt;= &quot;PROJ-1&quot; and key &lt;= &quot;PROJ-1500&quot; order by key asc', issues)
+    sleep 1
+  end
+  times.inject(0, &amp;:+) / times.size
+end
+
+puts bench_it 1000, 10
+puts bench_it 100, 50
+puts bench_it 10, 100
+puts bench_it 1, 500
+</code></pre></noscript></div>
+</p>
+
+<p>The oddity there is that I average a larger sample set for a smaller
+number of issues because I am trying to avoid outliers from the GC
+kicking in. I didn't want to stop the GC as that seemed too
+unrealistic, but I did give a 1 second <code>sleep</code> period between
+benchmarking runs. Since I am trying to show the difference in
+performance between versions, I don't think it will matter as long as
+I am consistent and the numbers don't end up being very close
+together.</p>
+
+<p>Due to differences in how I patched the projects, the benchmark script
+for <code>jira4r</code> is a little different, I won't embed it here, but it's in
+the <a href="https://gist.github.com/1144170">gist</a> with everything else.</p>
+
+<p>If you are familiar with the JIRA version of SQL, you can see that I
+am always using the same set of issues for each test run; and the 1000
+issues that were used take up 4.4 MB on disk when dumped to a file.
+Benchmarks on my 2.4 GHz C2D MacBook Pro running OS X Lion. <code>jiraSOAP</code>
+benchmarks were run using Ruby 1.9.3preview1 and MacRuby 0.10;
+<code>jira4r</code> benchmarks were run using Ruby 1.8.7-p249.</p>
+
+<h2>The Numbers</h2>
+
+<p><img src="/images/jiraSOAP<em>0.5.3</em>vs_jira4r.png"></p>
+
+<p>WHAT. THE. FRAK?! <code>jiraSOAP</code> was more than 2x slower than <code>jira4r</code> with
+CRuby; with MacRuby the the performance really bad---a whopping 7x
+slower than <code>jira4r</code> and more than 3x slower than the equivalent code
+running on CRuby.</p>
+
+<p>Experienced MacRuby users will probably suggest that such low
+performance is a result of lots and lots of memory
+allocations---programs that allocate a lot of memory will usually be
+slower on MacRuby. Using that intuition I began tracing through the
+parsing logic and found that the problem was how each <code>Issue</code> was
+being initialized.</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>bad<em>code.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='rb'><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="o">&lt;</span><span class="sr">/em&gt;with&lt;em&gt;xml&lt;/em</span><span class="o">&gt;</span><span class="n">fragment</span><span class="p">(</span><span class="n">frag</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">super</span> <span class="n">frag</span>
+</span><span class='line'>    <span class="vi">@key</span><span class="p">,</span> <span class="vi">@summary</span><span class="p">,</span> <span class="vi">@description</span><span class="p">,</span> <span class="vi">@type</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="nb">id</span><span class="p">,</span> <span class="vi">@status</span><span class="o">&lt;</span><span class="sr">/em&gt;id,</span>
+</span><span class='line'><span class="sr">    @assignee&lt;em&gt;name, @reporter&lt;/em</span><span class="o">&gt;</span><span class="nb">name</span><span class="p">,</span> <span class="vi">@priority</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="nb">id</span><span class="p">,</span> <span class="vi">@project</span><span class="o">&lt;</span><span class="sr">/em&gt;name,</span>
+</span><span class='line'><span class="sr">    @resolution&lt;em&gt;id, @environment, @votes, @last&lt;/em</span><span class="o">&gt;</span><span class="n">updated</span><span class="p">,</span> <span class="vi">@create</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">date</span><span class="p">,</span>
+</span><span class='line'>    <span class="vi">@due</span><span class="o">&lt;</span><span class="sr">/em&gt;date, @affects&lt;em&gt;versions, @fix&lt;/em</span><span class="o">&gt;</span><span class="n">versions</span><span class="p">,</span> <span class="vi">@components</span><span class="p">,</span>
+</span><span class='line'>    <span class="vi">@custom</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">field</span><span class="o">&lt;</span><span class="sr">/em&gt;values, @attachment&lt;em&gt;names =</span>
+</span><span class='line'><span class="sr">      frag.nodes( [&#39;key&#39;,                 :to&lt;/em</span><span class="o">&gt;</span><span class="n">s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span>             <span class="ss">:to</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;description&#39;</span><span class="p">,</span>         <span class="ss">:to</span><span class="o">&lt;</span><span class="sr">/em&gt;s],</span>
+</span><span class='line'><span class="sr">                  [&#39;type&#39;,                :to&lt;em&gt;s],</span>
+</span><span class='line'><span class="sr">                  [&#39;status&#39;,              :to&lt;/em</span><span class="o">&gt;</span><span class="n">s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;assignee&#39;</span><span class="p">,</span>            <span class="ss">:to</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;reporter&#39;</span><span class="p">,</span>            <span class="ss">:to</span><span class="o">&lt;</span><span class="sr">/em&gt;s],</span>
+</span><span class='line'><span class="sr">                  [&#39;priority&#39;,            :to&lt;em&gt;s],</span>
+</span><span class='line'><span class="sr">                  [&#39;project&#39;,             :to&lt;/em</span><span class="o">&gt;</span><span class="n">s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;resolution&#39;</span><span class="p">,</span>          <span class="ss">:to</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;environment&#39;</span><span class="p">,</span>         <span class="ss">:to</span><span class="o">&lt;</span><span class="sr">/em&gt;s],</span>
+</span><span class='line'><span class="sr">                  [&#39;votes&#39;,               :to&lt;em&gt;i],</span>
+</span><span class='line'><span class="sr">                  [&#39;updated&#39;,             :to&lt;/em</span><span class="o">&gt;</span><span class="n">date</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;created&#39;</span><span class="p">,</span>             <span class="ss">:to</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">date</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;duedate&#39;</span><span class="p">,</span>             <span class="ss">:to</span><span class="o">&lt;</span><span class="sr">/em&gt;date],</span>
+</span><span class='line'><span class="sr">                  [&#39;affectsVersions/</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="s1">&#39;,   :to_objects, JIRA::Version],</span>
+</span><span class='line'><span class="s1">                  [&#39;</span><span class="n">fixVersions</span><span class="o">/&lt;</span><span class="sr">/em&gt;&#39;,       :to&lt;em&gt;objects, JIRA::Version],</span>
+</span><span class='line'><span class="sr">                  [&#39;components/</span><span class="o">*</span><span class="s1">&#39;,        :to&lt;/em&gt;objects, JIRA::Component],</span>
+</span><span class='line'><span class="s1">                  [&#39;</span><span class="n">customFieldValues</span><span class="o">/&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="s1">&#39;, :to_objects, JIRA::CustomFieldValue],</span>
+</span><span class='line'><span class="s1">                  [&#39;</span><span class="n">attachmentNames</span><span class="o">/&lt;</span><span class="sr">/em&gt;&#39;,   :to_ss] )</span>
+</span><span class='line'><span class="sr">  end</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>A quick glance at the code will tell you that it has to <code>dup</code> each
+array and each element of the array for each call. But wait, it gets
+worse! Those strings are used in an the XPath query which is run on
+the same XML fragment for each attribute. The symbol elements are then
+used as the name of the transformer to be used on the XML node's inner
+text; the data transformers could be simple and just take the
+string from the inner text, or end up triggering the
+initialization of more objects that needed to be parsed
+(<code>#to_objects</code>), or it could initialize an array of Nazi soldiers
+(<code>#to_ss</code>).</p>
+
+<p>So for each issue, the virtual machine was constantly reallocating a
+lot of constant data, and re-walking the XML fragment for each XPath
+query. That makes two separate problems that should be fixable and
+which will undoubtedly improve performance and get rid of some
+repetitive code.</p>
+
+<h2>Plan of Attack</h2>
+
+<p>To fix iterating through the XML fragment for each attribute, I had to
+stop using XPath. While XPath is easier to use it was a bad fit in the
+first place since data from every node of the fragment was being
+used. I'd say that putting XPath in the recommended steps without a
+caveat was a bit misleading.</p>
+
+<p>Some quick research revealed that the best choice for this problem was
+a <a href="http://en.wikipedia.org/wiki/XML#Pull_parsing">pull parser</a> since
+it only iterates over the fragment once. The important thing to note
+here is that this change will cause the logic to switch
+around---instead of getting each attribute to ask for some XML it will
+now get each XML node to ask for an attribute. What makes this faster
+is that asking for a node required the use of XPath whereas asking for
+an attribute could be as simple as a hash look up.</p>
+
+<p>Given that the XML should be highly structured, I could have iterated
+through both the XML nodes and an array with the attribute names to
+just match the nodes and attributes up; however I was not to sure on
+the ordering of nodes with respect to sub-classing, perhaps it was in
+alphabetical order, but I would have to go through the WSDL for each
+version of JIRA that I wanted to support. Since I didn't want to do
+that took a potential performance hit and used a hash where the node
+name corresponded to a key.</p>
+
+<p>Using this new strategy, the parsing logic was totally generic and I
+refactored initialization of all XML entities to a common method:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>init.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='rb'><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">with</span><span class="o">&lt;</span><span class="sr">/em&gt;xml frag</span>
+</span><span class='line'><span class="sr">    attributes = self.class.parse</span>
+</span><span class='line'><span class="sr">    frag.children.each { |node|</span>
+</span><span class='line'><span class="sr">      action = attributes[node.name]</span>
+</span><span class='line'><span class="sr">      self.send action[0], (node.send *action[1..-1]) if action</span>
+</span><span class='line'><span class="sr">    }</span>
+</span><span class='line'><span class="sr">  end</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>Each class had its own parse map, and you can see from the code
+snippet. By declaring attributes using a <code>data-mapper</code> style of class
+method, the maps were built up for each class. The interesting part
+was getting inheritance working for parse maps; at first I had the
+obvious solution which looked a bit hacky but then I learned about
+some rarely used methods in ruby.</p>
+
+<h3>Ruby's Less Frequently Used Metaprogramming Callbacks</h3>
+
+<p><code>Class#inherited</code>, <code>Module#included</code>, and <code>Module#extended</code> are
+callbacks which are executed each time a Class/Module is subclassed,
+included, or extended. You can override the default implementation,
+which is an empty method, to provide custom inheritance/mixin rules.</p>
+
+<p>This turns logic that looks like this:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>inherited.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='rb'><span class='line'>  <span class="k">def</span> <span class="nf">property</span> <span class="nb">name</span><span class="p">,</span> <span class="kp">attr</span><span class="p">,</span> <span class="n">transformer</span>
+</span><span class='line'>    <span class="c1"># ...</span>
+</span><span class='line'>    <span class="vi">@parse</span> <span class="o">||=</span> <span class="n">superclass</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">dup</span>
+</span><span class='line'>    <span class="c1"># ...</span>
+</span><span class='line'>  <span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>into a one line method like this:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>inherited.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rb'><span class='line'>  <span class="k">def</span> <span class="nf">inherited</span> <span class="n">subclass</span>
+</span><span class='line'>    <span class="n">subclass</span><span class="o">.</span><span class="n">parse</span> <span class="o">=</span> <span class="vi">@parse</span><span class="o">.</span><span class="n">dup</span>
+</span><span class='line'>  <span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>Which I think is much nicer since it separates the logic of inheriting
+a parse map from adding a new property. It is also faster since it
+does not need to check if the value is already initialized which is a
+savings of a couple hundred checks at boot time.</p>
+
+<p>I found out about this callback when I was going over the
+<a href="https://github.com/ferrous26/hotcocoa/blob/master/lib/hotcocoa/behaviors.rb">HotCocoa::Behaviors</a>
+module, but I have since also found out that it is the technique used
+by <code>minitest</code> in order to keep track of which classes have tests.</p>
+
+<h2>Jumping Back To The Numbers</h2>
+
+<p>With the new parsing logic, how do the two gems stack up?</p>
+
+<p><img src="/images/jiraSOAP<em>0.7.1</em>vs_jira4r.png"></p>
+
+<p>About a 2x improvement! CRuby <code>jiraSOAP</code> is just a bit slower
+than <code>jira4r</code>, and MacRuby <code>jiraSOAP</code> is about as fast as CRuby
+<code>jiraSOAP</code> was before the change.</p>
+
+<p>Given the performance gap, I still suspected the issue is that there
+are too many allocations somewhere, but probably not in my code
+anymore. That is when I started looking into <code>handsoap</code>'s source code
+to see what goes on when I parse XML.</p>
+
+<p>It turns out that their parsing abstraction was the gold mine I should
+have been looking for earlier. Specifically, their method for getting
+the inner text of an XML node,
+<a href="http://rdoc.info/gems/handsoap/1.1.8/Handsoap/XmlQueryFront/NokogiriDriver#to_s-instance_method">#to_s</a>.</p>
+
+<p>That method does a bit of work to handle cases that are not relevant to
+<code>jiraSOAP</code>, but that detail is very minor when compared to calling
+<a href="http://rdoc.info/gems/nokogiri/1.5.0/Nokogiri/XML/Node#serialize-instance_method">Node#serialize</a>
+in <code>nokogiri</code> which ends up unpacking two options hashes before it
+gets to the point of extracting the inner text, which then returns to
+<code>handsoap</code> so that it can run 5 chained <code>#gsub</code> calls.</p>
+
+<p>The real kicker is that all the data transformers call<code>#to_s</code> first to
+get the nodes inner text. For an issue with 21 attributes, including
+nested structures, that is at least 21 calls to <code>#to_s</code> which
+allocates, among other things, the following:</p>
+
+<ul>
+<li><code>#to_s</code>
+
+<ul>
+<li>a Hash for options with a Symbol to String key-value pair (3)</li>
+<li>5 <code>gsub</code> calls with literal String arguments that need to be duped
+(15)</li>
+</ul></li>
+<li><code>#serialize</code>
+
+<ul>
+<li>a String to setup the encoding information (1)</li>
+<li>a StringIO to buffer the inner text into the string that was setup
+before (1)</li>
+</ul></li>
+<li><code>#write_to</code>
+
+<ul>
+<li>a String will have to be duped for the <code>indent_text</code> option in
+this case (1)</li>
+<li>a SaveOptions object (1)</li>
+<li>a String that will be created by <code>indent_text * indent_times</code> (1)</li>
+</ul></li>
+</ul>
+
+<p>That is at least 23 unneeded allocations per call of <code>#to_s</code>, which
+is 483 allocations per issue object and 483,000 allocations for the
+1000 issue sample.</p>
+
+<p>Keep in mind that that number is for the minimum number of attributes;
+an issue has two arrays of <code>Version</code> objects, one for affected
+versions and one for fix versions, and each version has 6 attributes;
+issues also have an array of <code>CustomFieldValue</code> objects with 3
+attributes each; and issues also have an array of attachment name
+strings. Realistically, most issues will have an affects version and
+probably a fix version; many databases also use custom field.
+483,000 allocations is actually a conservative estimate and the real
+number of wasteful allocations is is well over 500,000.</p>
+
+<h3>Fixing The Problem</h3>
+
+<p>Fixing things in <code>handsoap</code> was a possibility, but I had already
+opened a pull request in which the <code>handsoap</code> devs were responding
+too infrequently. I decided that <code>handsoap</code> was unfairly allocated
+some resources that I wanted and I took upon myself to fix the problem
+by liberating the oppressed methods---I went freedom patching.</p>
+
+<p>As mentioned earlier, I didn't need code to handle any of the special
+cases. I also think that calling <code>gsub</code> to swap out escaped characters
+is a waste since the data will end up in an HTML document more often
+than not.</p>
+
+<p>After checking, I found that I could just call
+<a href="http://rdoc.info/gems/nokogiri/1.5.0/Nokogiri/XML/Node#content-instance_method">Node#content</a>
+to get the inner text of an XML node. That method doesn't do any of
+unnecessary work that I outlined earlier, it doesn't even enforce an
+encoding.</p>
+
+<h2>Newest Numbers</h2>
+
+<p>How do the performance numbers look after bypassing the extraneous
+code paths of <code>handsoap</code>?</p>
+
+<p><img src="/images/jiraSOAP<em>0.9.0</em>vs_jira4r.png"></p>
+
+<p>Really good! <code>jiraSOAP</code> on CRuby now runs so much faster that the
+scaling for the graphs is all messed up. Even <code>jiraSOAP</code> on MacRuby is
+now faster than <code>jira4r</code>.</p>
+
+<p>I also haven't had any bugs logged related to encoding problems or
+escaped characters, so I think this is a big win. I even went and
+benchmarked past 1000 issues.</p>
+
+<h3>How Does It Scale?</h3>
+
+<p><img src="/images/jiraSOAP<em>0.9.0</em>past_1000.png"></p>
+
+<p><code>jiraSOAP</code> now parses ~2250 issues/s, which is ~10MB/s, which I
+think is pretty good. It also looks like the new lazy-sweep GC changes
+in ruby 1.9.3 kick in somewhere between 3000-4000 issues which is very
+cool.</p>
+
+<p>The parsing can still get faster without resorting to C (nokogiri
+excepted); there are other solutions I have not tried yet because I
+haven't had the time lately.</p>
+
+<p>One such solution would be to cache the XML fragment and only parse it
+on demand. I would have to go back to XPath in this case, but since
+parsing is not done until needed it will get the standard laziness
+trade off of maybe never having to parse the XML and saving
+potentially many allocations.</p>
+
+<p>Benchmarking such a change would be more challenging since it would
+need to take into account a much larger sample of the different ways
+in which people are using <code>jiraSOAP</code>; how man attributes are used
+normally and how often?</p>
+
+<p>Then there is the memory-time trade off to consider, the XML document
+is, at some level, a very large string, which is not nearly as memory
+efficient as the structures the data would be parsed into and would
+be expensive to keep around for a long period of time.</p>
+
+<p>The lack of understanding on how other people use the gem is the
+reason why it would be difficult to tell whether or not it would be
+faster in the general case or at least worth the memory trade off. I
+know at least one person was using the gem as part of a rails app,
+but I don't know if it was a main component or simply a way
+to log bugs when errors occurred.</p>
+
+<p>I could at least go as far as to find the threshold at which it
+becomes worthwhile by actually implementing the change, but I don't
+have the time right now and at this point the performance bottleneck
+is probably not parsing anymore.</p>
+
+<h2>Next Steps</h2>
+
+<p>The real performance bottleneck now is the use of <code>net/http</code> for the
+networking layer. With CRuby you can easily tell <code>handsoap</code> to use a
+different back end for HTTP communication. <code>curb</code> is <code>handsoap</code>'s
+recommended back end and is much faster than <code>net/http</code>, but it is not
+compatible with MacRuby which is why I changed the default to
+<code>net/http</code>.</p>
+
+<p>If you are using CRuby then you are better off switching to <code>curb</code> or
+<code>httpclient</code> after loading <code>jiraSOAP</code>:</p>
+
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>switch.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='rb'><span class='line'>  <span class="nb">require</span> <span class="s1">&#39;jiraSOAP&#39;</span>
+</span><span class='line'>  <span class="no">Handsoap</span><span class="o">.</span><span class="n">http</span><span class="o">&lt;</span><span class="n">em</span><span class="o">&gt;</span><span class="n">driver</span> <span class="o">=</span> <span class="ss">:http</span><span class="o">&lt;</span><span class="sr">/em&gt;client</span>
+</span><span class='line'><span class="sr">  # or</span>
+</span><span class='line'><span class="sr">  Handsoap.http_driver = :curb</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
+
+<p>You can also use <code>eventmachine</code> with <code>handsoap</code>, but it will not work
+with <code>jiraSOAP</code> out of the box, you would need to reimplement the 4
+private methods in <code>lib/jiraSOAP/api.rb</code>.</p>
+
+<p>In the future I think I will be able to release the gem once for each
+<code>RUBY_ENGINE</code> so that each ruby can have proper defaults. It would
+also be nice to have a MacRuby specific back end that uses Cocoa for
+the networking layer.</p>
+
+<p>Though, by this time next year I expect that the JIRA REST API will
+have caught up to the SOAP API and <code>jiraSOAP</code> will become
+obsolete. So I don't think I will be spending too much more time on
+this project. Besides, <code>jiraSOAP</code> now implements 99% of the API that I
+care about and the implementation is simple enough and stable enough
+to have other APIs easily added by users who want them.</p>
+]]></content>
+  </entry>
+  
+</feed>

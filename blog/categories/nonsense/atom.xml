@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: nonsense | My blog]]></title>
+  <link href="http://ferrous26.github.com/blog/categories/nonsense/atom.xml" rel="self"/>
+  <link href="http://ferrous26.github.com/"/>
+  <updated>2012-04-03T18:56:28-04:00</updated>
+  <id>http://ferrous26.github.com/</id>
+  <author>
+    <name><![CDATA[Mark Rada]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[First!]]></title>
+    <link href="http://ferrous26.github.com/blog/2011/08/03/first/"/>
+    <updated>2011-08-03T22:40:00-04:00</updated>
+    <id>http://ferrous26.github.com/blog/2011/08/03/first</id>
+    <content type="html"><![CDATA[<p>My first blog post. Ever.</p>
+
+<p>I've been thinking about starting a blog for a few months now, but I
+could never find a topic that I wanted to publicly write about.</p>
+
+<p>Possibilities:</p>
+
+<ul>
+<li>announcements of things that I am working on</li>
+<li>interesting tech that I am playing with</li>
+<li>topics related to school work</li>
+</ul>
+
+<p>I will probably make a blog post about my
+<a href="https://rubygems.org/gems/jiraSOAP">jiraSOAP</a> gem in the next few
+days since I am releasing version 0.9 tonight.</p>
+
+<p>Hopefully I don't pollute the internet too much.</p>
+]]></content>
+  </entry>
+  
+</feed>

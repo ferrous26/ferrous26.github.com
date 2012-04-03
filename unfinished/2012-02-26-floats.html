@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>First! - My blog</title>
+  <title>Floats - My blog</title>
   <meta name="author" content="Mark Rada">
 
   
-  <meta name="description" content="My first blog post. Ever. I&#8217;ve been thinking about starting a blog for a few months now, but I
-could never find a topic that I wanted to &hellip;">
+  <meta name="description" content="Floating point. It&#8217;s a pain when it doesn&#8217;t work the way you expect.
+Which for some, is often. Sadly, I&#8217;m not excluded from this &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -19,7 +19,7 @@ could never find a topic that I wanted to &hellip;">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://ferrous26.github.com/blog/2011/08/03/first">
+  <link rel="canonical" href="http://ferrous26.github.com/unfinished/2012-02-26-floats.html">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <script src="/javascripts/modernizr-2.0.js"></script>
@@ -68,7 +68,7 @@ could never find a topic that I wanted to &hellip;">
   
   <header>
     
-      <h1 class="entry-title">First!</h1>
+      <h1 class="entry-title">Floats</h1>
     
     
       <p class="meta">
@@ -84,7 +84,7 @@ could never find a topic that I wanted to &hellip;">
   
 
 
-<time datetime="2011-08-03T22:40:00-04:00" pubdate data-updated="true">Aug 3<span>rd</span>, 2011</time>
+<time datetime="2012-02-26T01:18:00-05:00" pubdate data-updated="true">Feb 26<span>th</span>, 2012</time>
         
          | <a href="#disqus_thread">Comments</a>
         
@@ -93,24 +93,96 @@ could never find a topic that I wanted to &hellip;">
   </header>
 
 
-<div class="entry-content"><p>My first blog post. Ever.</p>
+<div class="entry-content"><p>Floating point. It&#8217;s a pain when it doesn&#8217;t work the way you expect.
+Which for some, is often. Sadly, I&#8217;m not excluded from this group as
+often as I&#8217;d like. </p>
 
-<p>I&#8217;ve been thinking about starting a blog for a few months now, but I
-could never find a topic that I wanted to publicly write about.</p>
+<p>One of these cases is with how MacRuby handles floating point numbers.
+Notice that I&#8217;m just using the phrase &quot;floating point&quot; and not <em>IEEE</em>
+floating point. This detail is the topic of my rant. </p>
 
-<p>Possibilities:</p>
+<p>What makes this a pain is that MacRuby <em>mostly</em> implements IEEE floating
+point. Where MacRuby differs is in the fact that MacRuby retains less
+precision than you would expect. On a 64 bit system you would expect
+that the one type of float offered by the language is double precision
+float. That is, 1 bit for the sign, 18 bits for the significant, and 48
+bits for the mantissa.</p>
 
-<ul>
-<li>announcements of things that I am working on</li>
-<li>interesting tech that I am playing with</li>
-<li>topics related to school work</li>
-</ul>
+<p>You&#8217;ll notice that compared to 32 bit floating point, the significant
+only increased by 8 bits, or 45%, but the exponents increased by 30
+bits, or 80%. The reasoning is that the exponent is where the important
+info gets stored. </p>
 
-<p>I will probably make a blog post about my
-<a href="https://rubygems.org/gems/jiraSOAP">jiraSOAP</a> gem in the next few
-days since I am releasing version 0.9 tonight.</p>
+<p>To give you an idea or how important precision is, the mantissa actually
+does not include the leading bit. It is always 1 by design and they
+don&#8217;t even include it so that they can squeeze one more bit of precision
+in. </p>
 
-<p>Hopefully I don&#8217;t pollute the internet too much.</p>
+<p>As a practical example, consider the following snippet of code:</p>
+
+<p>1/120 * 0.2</p>
+
+<p>You can do this math in your head. And what&#8217;s more is that you can be
+precise. If you try it out in C, Haskell, or any other language that
+properly implements double precision floating point numbers you will get
+24.0 as a result. Not 24.000000001, not 23.999999999, but 24.0. Great,
+that&#8217;s what we want. Now try it in MacRuby:</p>
+
+<p>23.0</p>
+
+<p>What. The. Fuck. If we dig into te MacRuby source we will find that
+floating point numbers have been optimized for speed. How? By
+sacrificing precision. The explanation requires some understanding of
+the internals of ruby. </p>
+
+<p>In ruby</p>
+
+<p>Float is legacy. At least it&#8217;s fast. </p>
+
+<p>When we look at the data structure for a float it is important to note
+that the order is sign, exponent, mantissa. Mantissa occupies the higher
+order bits. Since a float is effectively a struct implemented in
+hardware we can&#8217;t modify it. </p>
+
+<p>Looking at an integer, it is just an array of bits. Even when signed it,
+using twos complement we can arbitrarily take some number of bits from
+the big end and just have a smaller max and min value. In fact, this is
+exactly what Rubies (and NSNumber) do in order to keep numbers on the
+stack and avoid a costly fetch from the heap. The cost is simply that
+your numbers cannot be as large. </p>
+
+<p>However, applying the same hack to floating point numbers has a
+different effect. Instead of lowering the max and min values, using the
+higher order bits as a mask will reduce the amount of precision that the
+float can store. </p>
+
+<p>At first this doesn&#8217;t seem as bad, but when you look closely at how the
+underlying hardware will interact with the number you can see that more
+precision is being lost than you would think. </p>
+
+<p>Floating point arithmetic uses a guard bit as a trick to get more
+accuracy out of calculations. It can be demonstrated with a simple
+example:</p>
+
+<p>When you are throwing away your two higher order bits you throw away
+this accuracy compensation and then another bit on top of that. How big
+of a deal is this? Let&#8217;s take a look at a real world example of a
+calculation I was trying to make:</p>
+
+<p>120 * 0.2 / 34</p>
+
+<p>Anywhere else this would work as expected. Here it is 23.0</p>
+
+<p>If it were possible to rearrange floats to store the exponent in the
+higher order bits then the performance optimization could have the same
+effect on floats as it does for integers. Though I am not an expert in
+IEEE floating point, I don&#8217;t think the organization of the data
+structure is anything more than arbitrary. Changing the order would
+allow MacRuby&#8217;s optimization to be applied all over the place
+effectively. </p>
+
+<p>Look at luajit to see if it has the same issue. And also see what it
+does with tagging. </p>
 </div>
 
 
@@ -133,12 +205,12 @@ days since I am releasing version 0.9 tonight.</p>
   
 
 
-<time datetime="2011-08-03T22:40:00-04:00" pubdate data-updated="true">Aug 3<span>rd</span>, 2011</time>
+<time datetime="2012-02-26T01:18:00-05:00" pubdate data-updated="true">Feb 26<span>th</span>, 2012</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/nonsense/'>nonsense</a>
+    Liquid error: undefined method `sort!' for nil:NilClass
   
 </span>
 
@@ -147,7 +219,7 @@ days since I am releasing version 0.9 tonight.</p>
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://ferrous26.github.com/blog/2011/08/03/first/" data-via="ferrous26" data-counturl="http://ferrous26.github.com/blog/2011/08/03/first/" >Tweet</a>
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://ferrous26.github.com/unfinished/2012-02-26-floats.html" data-via="ferrous26" data-counturl="http://ferrous26.github.com/unfinished/2012-02-26-floats.html" >Tweet</a>
   
   
   <div class="g-plusone" data-size="medium"></div>
@@ -158,8 +230,6 @@ days since I am releasing version 0.9 tonight.</p>
     
     <p class="meta">
       
-      
-        <a class="basic-alignment right" href="/blog/2011/08/21/jiraSOAP-0.9/" title="Next Post: jiraSOAP 0.9">jiraSOAP 0.9 &raquo;</a>
       
     </p>
   </footer>
@@ -271,8 +341,8 @@ days since I am releasing version 0.9 tonight.</p>
       
         
         // var disqus_developer = 1;
-        var disqus_identifier = 'http://ferrous26.github.com/blog/2011/08/03/first/';
-        var disqus_url = 'http://ferrous26.github.com/blog/2011/08/03/first/';
+        var disqus_identifier = 'http://ferrous26.github.com/unfinished/2012-02-26-floats.html';
+        var disqus_url = 'http://ferrous26.github.com/unfinished/2012-02-26-floats.html';
         var disqus_script = 'embed.js';
       
     (function () {

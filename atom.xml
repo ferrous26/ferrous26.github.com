@@ -1,122 +1,408 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title>My blog</title>
+  <title><![CDATA[My blog]]></title>
   <link href="http://ferrous26.github.com/atom.xml" rel="self"/>
   <link href="http://ferrous26.github.com/"/>
-  <updated>2011-08-22T16:58:05-04:00</updated>
+  <updated>2012-04-03T18:56:28-04:00</updated>
   <id>http://ferrous26.github.com/</id>
   <author>
-    <name>Mark Rada</name>
+    <name><![CDATA[Mark Rada]]></name>
     
   </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
 
   
   <entry>
-    <title>jiraSOAP 0.9</title>
+    <title type="html"><![CDATA[Accessibility: Keyboarding]]></title>
+    <link href="http://ferrous26.github.com/blog/2012/04/03/axelements-part1/"/>
+    <updated>2012-04-03T00:00:00-04:00</updated>
+    <id>http://ferrous26.github.com/blog/2012/04/03/axelements-part1</id>
+    <content type="html"><![CDATA[<p>This is the first article in a short series about the different
+components of
+<a href="https://github.com/Marketcircle/AXElements">AXElements</a>. AXElements
+has been rewritten to be much more modular and now various components
+may be used individually. The keyboard event generator was the first
+component to be polished and released as its own gem.</p>
+
+<!--more-->
+
+<p>Event generation is exposed via the
+<a href="https://github.com/Marketcircle/AXElements/blob/master/lib/accessibility/string.rb">Accessibility::String</a>
+mix-in. Using the mix-in, a simple string of human readable text is
+taken and turned it into a sequence of events which may be fed to one
+of the keyboard event posting APIs provided by OS X.</p>
+
+<p>To get started you will need to have a working Ruby 1.9
+implementation&#8212;I&#8217;ve tested this with MRI 1.9.3 and MacRuby (for
+MacRuby you will need a <a href="http://www.macruby.org/files/nightlies/">nightly build</a>).
+Then you can install the <code>AXTyper</code> gem:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>gem install AXTyper
+</span></code></pre></td></tr></table></div></figure>
+
+<p>The quickest demonstration of event generation is through <code>irb</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">001</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="nb">require</span> <span class="s1">&#39;rubygems&#39;</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="kp">true</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">002</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="nb">require</span> <span class="s1">&#39;accessibility/string&#39;</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="kp">true</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">003</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="kp">include</span> <span class="no">Accessibility</span><span class="o">::</span><span class="nb">String</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="no">NSObject</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">004</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">events</span> <span class="o">=</span> <span class="n">keyboard_events_for</span> <span class="s2">&quot;Hello, </span><span class="si">#{</span><span class="no">ENV</span><span class="o">[</span><span class="s1">&#39;USER&#39;</span><span class="o">]</span><span class="si">}</span><span class="s2">.&quot;</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="o">[[</span><span class="mi">56</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">38</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">38</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">56</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">2</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">2</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">1</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">1</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">13</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">13</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">49</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">49</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">46</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">46</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">31</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">31</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">4</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">4</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">14</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">14</span><span class="p">,</span> <span class="kp">false</span><span class="o">]]</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">005</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>And now you have some events! Events are number/boolean tuples;
+the number is a key code and the boolean is the key state; there are
+more details regarding the key code, but I&#8217;ll get to that later.</p>
+
+<p>Now that we have some events, we should figure out what to do with
+them since they are not of much use on their own. The most useful, and
+easiest, thing to do is post them to the system. This of course comes
+with a caveat: you will actually be causing the keys to be typed out
+to the system and the front most application will receive the events.</p>
+
+<p><strong>Be careful of the string you give to the generator!</strong></p>
+
+<p>The interface for posting events is different depending on if you are
+using MRI or MacRuby. With MacRuby, events can be posted natively in
+Ruby code, but for this demonstration the C extension provided by
+<code>AXTyper</code> includes a singleton method, <code>KeyCoder.post_event</code>, which
+takes a single event and posts it to the system. Using this method we
+can post our events:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">005</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">events</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">event</span><span class="o">|</span> <span class="no">KeyCoder</span><span class="o">.</span><span class="n">post_event</span> <span class="n">event</span> <span class="k">end</span>
+</span><span class='line'><span class="no">Hello</span><span class="p">,</span> <span class="n">mrada</span><span class="o">.</span><span class="n">=</span><span class="o">&gt;</span> <span class="o">[[</span><span class="mi">56</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">38</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">38</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">56</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">2</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">2</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">1</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">1</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">13</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">13</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">49</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">49</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">46</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">46</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">31</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">31</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">4</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">4</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">14</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">14</span><span class="p">,</span> <span class="kp">false</span><span class="o">]]</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">006</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Hello</span><span class="p">,</span> <span class="n">mrada</span><span class="o">.</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>You&#8217;ll notice that typing begins immediately when the <code>post_event</code>
+method is called. Typing is also really fast; in fact, it has to be
+slowed down for practical use.</p>
+
+<p>It may be nicer to wrap generation and posting together and add a
+small time buffer for you to release the enter key:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">type</span> <span class="n">string</span>
+</span><span class='line'>  <span class="nb">sleep</span> <span class="mi">0</span><span class="o">.</span><span class="mi">1</span>
+</span><span class='line'>  <span class="n">keyboard_events_for</span><span class="p">(</span><span class="n">string</span><span class="p">)</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">event</span><span class="o">|</span>
+</span><span class='line'>    <span class="no">KeyCoder</span><span class="o">.</span><span class="n">post_event</span> <span class="n">event</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now let&#8217;s try something a bit more complicated:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CONTROL+l `say &#39;ZOMG&#39;`</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>A Little More Depth</h2>
+
+<p>So what&#8217;s going on here? On the AXElements side of things there is just
+a basic lexer and generator. The lexer tokenizes the string input and
+the generator takes the tokens and generates one or more pairs of
+event tuples. The interesting detail is that a set of escape sequences
+for control keys has been added.</p>
+
+<h4>Lexing</h4>
+
+<p>Strings fed to the lexer support an extra set of escape sequences for
+the control keys like Control, Option, Command, etc.. The last example
+above used the <code>&quot;\\CONTROL&quot;</code> escape sequence to represent the left
+control key. Other than those special sequences, string formatting
+is straight forward and you can use all the letters, numbers, and
+symbols that you would in any other string. Uppercasing letters is
+automatically handled for you and so are all of the symbols that you
+would have to hold down the shift or option key in order to
+type. White space and line breaks in strings will get turned into
+tabs, spaces, and return/enter, and delete key presses appropriately,
+but you can also use <code>&quot;\t&quot;</code>, <code>&quot;\s&quot;</code>, <code>&quot;\r&quot;</code>, <code>&quot;\n&quot;</code>, and <code>&quot;\b&quot;</code> as you
+would in any other string.</p>
+
+<p>Once the lexer is done lexing, its output is fed into the generator.</p>
+
+<h4>Event Generation</h4>
+
+<p>The event generator inspects each token and figures out what events
+need to be generated in order type the token.</p>
+
+<p>As mentioned above, events are number/boolean tuples. They are fed to
+the
+<a href="http://developer.apple.com/library/mac/#documentation/Carbon/Reference/QuartzEventServicesRef/Reference/reference.html">CGEventCreateKeyboardEvent()</a>
+function that is used in the above examples. The function takes a key
+code and a key state as parameters and so each event pair is simply
+what is required to be passed to that function.</p>
+
+<p>Key codes are a mapping of numbers to keys on the keyboard; some
+mappings are static, such as the control keys; and some mappings are
+dynamic based on the keyboard layout. Since a code refers to a
+physical key and not the particular symbol they represent, upper case
+letters require the generation of events for pressing either the shift
+key before hitting the lower case letter.</p>
+
+<p>The key state is simply a boolean value with <code>true</code> meaning that the
+key is in the keydown state and <code>false</code> meaning that the key is in the
+keyup state. This makes it possible to hold down the shift key and
+then press the <code>&quot;a&quot;</code> key to generate an <code>&quot;A&quot;</code>; it also makes it
+possible to simulate hotkeys and symbols.</p>
+
+<h5>Symbols</h5>
+
+<p>Symbols such as <code>&quot;!&quot;</code>, <code>&quot;∑&quot;</code>, and <code>&quot;]&quot;</code> are all supported by the event
+generator. Any symbol that you can type directly using one or more
+keys should <strong>Just Work™</strong>. Some contrived examples might look like
+this snippet:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">type</span> <span class="s2">&quot;@hash = { a: &#39;∑&#39;, b: &#39;™&#39; }</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;@hash.merge! { c: &#39;£&#39;, d: &#39;¢&#39; }</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;@hash.inspect</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>A caveat to this is that some symbols can be on the keyboard twice,
+the obvious cases are the mathematical operations and numbers. The
+event generator does not use the keypad for plain symbols in
+strings. To use the keypad keys specifically you will need to use
+custom escape sequences.</p>
+
+<h5>Escape Characters</h5>
+
+<p>As mentioned above, standard escape codes (e.g. <code>&quot;\n&quot;</code>, <code>&quot;\t&quot;</code>) all still
+work, even using <code>&quot;\b&quot;</code> as the delete key. On top of the built in escape
+sequences, the lexer and generator have added an additional set of
+escape sequences for control keys and other static keys. The full list
+is located in the documentation
+<a href="http://rdoc.info/github/Marketcircle/AXElements/master/Accessibility/String/EventGenerator#CUSTOM-constant">here</a>,
+but the naming convention should be obvious enough after a small
+demonstration.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CONTROL&quot;</span>
+</span><span class='line'><span class="c1"># or</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CTRL&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># using built in escape codes</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;The cake is a lie</span><span class="se">\b\b\b\b\b\b</span><span class="s2"> delicious&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># Use the CMD+a hotkey and then start typing</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">COMMAND+a I just deleted everything, didn&#39;t I?&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># type one key and then the other</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">1 </span><span class="se">\\</span><span class="s2">+ </span><span class="se">\\</span><span class="s2">2 </span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># type all the keys as a hot key combination</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CMD+</span><span class="se">\\</span><span class="s2">SHIFT+s&quot;</span>
+</span><span class='line'><span class="c1"># or</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CMD+S&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># type out a backslash</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># type out a fake command key</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CAKE&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>There are two rules to using the custom escape sequences. First, a
+custom escape sequence must be terminated by an empty space <em>or</em> the
+end of the string.</p>
+
+<h6>Hot Keys</h6>
+
+<p>The second rule is an exception to the first rule; a custom escape
+sequence can end with a <code>&quot;+&quot;</code> if it is being used in a hot key
+combination and will be immediately followed by another key in the
+combination. In previous examples we combined two and three keys in
+order to make a combination, but an upper limit on the number of keys
+is not defined by the event generator.</p>
+
+<h2>Sending Events To A Specific Application</h2>
+
+<p>Though the easiest way to post events to the system was to use
+<code>CGEventPost()</code>, there are also APIs for posting events to a specific
+application regardless of which application is focused.</p>
+
+<p>The API for doing this is located in the
+<a href="http://developer.apple.com/library/mac/#documentation/Accessibility/Reference/AccessibilityLowlevel/AXUIElement_h">OS X Accessibility headers</a>,
+but requires you to provide a reference to the application where you
+would like to post events. Using the accessibility APIs is a little
+tricky at first, especially in Ruby.</p>
+
+<p>I&#8217;ll cover Accessibility API basics in the next part of this series:
+&quot;Accessibility: From References To Objects&quot;.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[jiraSOAP 0.9]]></title>
     <link href="http://ferrous26.github.com/blog/2011/08/21/jiraSOAP-0.9/"/>
     <updated>2011-08-21T00:00:00-04:00</updated>
     <id>http://ferrous26.github.com/blog/2011/08/21/jiraSOAP-0.9</id>
-    <content type="html">&lt;p&gt;A couple of weeks ago I released version 0.9 of the
-&lt;a href=&quot;http://github.com/Marketcircle/jiraSOAP&quot;&gt;jiraSOAP&lt;/a&gt; gem. &lt;code&gt;jiraSOAP&lt;/code&gt;
+    <content type="html"><![CDATA[<p>A couple of weeks ago I released version 0.9 of the
+<a href="http://github.com/Marketcircle/jiraSOAP">jiraSOAP</a> gem. <code>jiraSOAP</code>
 0.9 is a milestone release for a few reasons, namely stability and
 motivation. Stability, I think, is a reflection of my journey from
 knowing little Ruby to being to pass myself off as knowing a thing or
 two. This blog is about an adventure I had with developing
-&lt;code&gt;jiraSOAP&lt;/code&gt;.&lt;/p&gt;
+<code>jiraSOAP</code>.</p>
 
-&lt;!--more--&gt;
+<!--more-->
 
-&lt;h2&gt;A Little History&lt;/h2&gt;
+<h2>A Little History</h2>
 
-&lt;p&gt;&lt;code&gt;jiraSOAP&lt;/code&gt; is my first real ruby project and it was how I learned ruby
+<p><code>jiraSOAP</code> is my first real ruby project and it was how I learned ruby
 basics. My earlier experiences with ruby were small scripts to access
 the bug tracker at work and I was using a gem called
-&lt;a href=&quot;https://github.com/tastyhat/jira4r&quot;&gt;jira4r&lt;/a&gt; to communicate with the
+<a href="https://github.com/tastyhat/jira4r">jira4r</a> to communicate with the
 bug tracker. This gem was limited in a few ways that became very
 irritating. It had no APIs from JIRA 4.x; the API it did expose was
 ugly and inflexible; and the gem does not run on Ruby 1.9 and thus
 could not run on MacRuby, which is a technology that my boss suggested
-looking into.&lt;/p&gt;
+looking into.</p>
 
-&lt;p&gt;At the time, JIRA was beginning to develop a REST API, but it was
+<p>At the time, JIRA was beginning to develop a REST API, but it was
 pre-alpha quality. The available resources were limited and
 read-only. On the other hand the still supported, but not actively
-developed, SOAP interface had APIs for almost everything.&lt;/p&gt;
+developed, SOAP interface had APIs for almost everything.</p>
 
-&lt;p&gt;Enter &lt;a href=&quot;https://github.com/unwire/handsoap&quot;&gt;handsoap&lt;/a&gt;, a gem that
+<p>Enter <a href="https://github.com/unwire/handsoap">handsoap</a>, a gem that
 promised an easy way to make a custom wrapper around a SOAP API
 that would be very fast. As it turns out, the speed part was
-overly optimistic, but I'll get to that later. The important feature
+overly optimistic, but I&#8217;ll get to that later. The important feature
 was that I could customize the API that I provided instead of simply
-generating something from the WSDL.&lt;/p&gt;
+generating something from the WSDL.</p>
 
-&lt;p&gt;After a couple of weeks of playing with the library (it was far from
+<p>After a couple of weeks of playing with the library (it was far from
 my primary concern at work), I had a working predecessor to
-&lt;code&gt;jiraSOAP&lt;/code&gt;. At this point I asked my boss if we could open source my
+<code>jiraSOAP</code>. At this point I asked my boss if we could open source my
 work; that way I would work on it more after hours and other people
-could use and hopefully contribute to the project as well.&lt;/p&gt;
+could use and hopefully contribute to the project as well.</p>
 
-&lt;h2&gt;jiraSOAP's Early OSS Days&lt;/h2&gt;
+<h2>jiraSOAP&#8217;s Early OSS Days</h2>
 
-&lt;p&gt;The early days were hectic, I was pretty much rewriting &lt;code&gt;jiraSOAP&lt;/code&gt; for
+<p>The early days were hectic, I was pretty much rewriting <code>jiraSOAP</code> for
 each release as I learned new things. I even had a silly contribution
 policy warning people about contributions being unlikely to apply
-cleanly.&lt;/p&gt;
+cleanly.</p>
 
-&lt;p&gt;Part of the problem was that the
-&lt;a href=&quot;https://github.com/unwire/handsoap/wiki/Recommendations&quot;&gt;recommended practices&lt;/a&gt;
+<p>Part of the problem was that the
+<a href="https://github.com/unwire/handsoap/wiki/Recommendations">recommended practices</a>
 for writing the SOAP client were about as vague as an East Texas
-software patent, or at least the step about refactoring was. I can't
-blame &lt;code&gt;handsoap&lt;/code&gt; for that problem, it was my first real ruby project
-and I was still figuring a lot things out.&lt;/p&gt;
+software patent, or at least the step about refactoring was. I can&#8217;t
+blame <code>handsoap</code> for that problem, it was my first real ruby project
+and I was still figuring a lot things out.</p>
 
-&lt;p&gt;The logic for building messages was pretty clear and simple, but the
+<p>The logic for building messages was pretty clear and simple, but the
 the parsing logic required a relatively large amount of code from
 me. It was the parsing logic that was changing often due to
-refactoring with the goal of being cleaner and faster.&lt;/p&gt;
+refactoring with the goal of being cleaner and faster.</p>
 
-&lt;h3&gt;How Slow Was It?&lt;/h3&gt;
+<h3>How Slow Was It?</h3>
 
-&lt;p&gt;&lt;code&gt;handsoap&lt;/code&gt; claims to be faster because it can use C
+<p><code>handsoap</code> claims to be faster because it can use C
 extensions for HTTP communication and XML parsing, they even supply
 some
-&lt;a href=&quot;https://github.com/unwire/handsoap/blob/master/README.markdown&quot;&gt;benchmarks&lt;/a&gt;
+<a href="https://github.com/unwire/handsoap/blob/master/README.markdown">benchmarks</a>
 in the README, though they qualify the benchmarks as being a little
-unfair.&lt;/p&gt;
+unfair.</p>
 
-&lt;p&gt;I guess the unfair part is that those numbers were not jiving with my
+<p>I guess the unfair part is that those numbers were not jiving with my
 personal experience; everything felt much slower than advertised. When I
 looked into it, I found that their benchmark
-&lt;a href=&quot;https://github.com/unwire/handsoap/blob/master/tests/benchmark_integration_test.rb&quot;&gt;code&lt;/a&gt;
-didn't actually do any parsing!&lt;/p&gt;
+<a href="https://github.com/unwire/handsoap/blob/master/tests/benchmark_integration_test.rb">code</a>
+didn&#8217;t actually do any parsing!</p>
 
-&lt;p&gt;Inspired by
-&lt;a href=&quot;http://confreaks.net/videos/427-rubyconf2010-zomg-why-is-this-code-so-slow&quot;&gt;&amp;quot;ZOMG WHY IS THIS CODE SO SLOW?&amp;quot;&lt;/a&gt;,
+<p>Inspired by
+<a href="http://confreaks.net/videos/427-rubyconf2010-zomg-why-is-this-code-so-slow">&quot;ZOMG WHY IS THIS CODE SO SLOW?&quot;</a>,
 I began my own investigation into why my gem was slow. Though, in my
-case I was working with a smaller and more sane code base.&lt;/p&gt;
+case I was working with a smaller and more sane code base.</p>
 
-&lt;p&gt;Step 1 is figuring out what to measure and then step 2 is making the
+<p>Step 1 is figuring out what to measure and then step 2 is making the
 baseline measurements. Since I supplied most of the parsing logic, I
 figured that I should measure parsing time. I chose to measure parse
-time for &lt;code&gt;Issue&lt;/code&gt; objects since it is the most common type of object
+time for <code>Issue</code> objects since it is the most common type of object
 to work with; but it is also the largest type, weighing in at 21
 attributes, including collections of other data structures that need
-to be parsed.&lt;/p&gt;
+to be parsed.</p>
 
-&lt;p&gt;Before I get to how the measurements were made, I should mention that
+<p>Before I get to how the measurements were made, I should mention that
 when I originally performed benchmarks that I was not very rigorous
 about collecting data. For the sake of this blog post I went back in
 time and benchmarked things properly. I say properly, but I really
-mean &amp;quot;good enough&amp;quot; for my purposes.&lt;/p&gt;
+mean &quot;good enough&quot; for my purposes.</p>
 
-&lt;p&gt;Since I wanted to measure just parsing time, I needed to change the
-&lt;code&gt;jiraSOAP&lt;/code&gt; code base a little. The gist shows how to modify the
-&lt;code&gt;jiraSOAP&lt;/code&gt; 0.9 code, but the changes needed for an older version are
-almost the same:&lt;/p&gt;
+<p>Since I wanted to measure just parsing time, I needed to change the
+<code>jiraSOAP</code> code base a little. The gist shows how to modify the
+<code>jiraSOAP</code> 0.9 code, but the changes needed for an older version are
+almost the same:</p>
 
-&lt;div&gt;&lt;script src='https://gist.github.com/1144170.js?file=parse_measurement.diff'&gt;&lt;/script&gt;
-&lt;noscript&gt;&lt;pre&gt;&lt;code&gt;diff --git a/lib/jiraSOAP/api.rb b/lib/jiraSOAP/api.rb
+<div><script src='https://gist.github.com/1144170.js?file=parse_measurement.diff'></script>
+<noscript><pre><code>diff --git a/lib/jiraSOAP/api.rb b/lib/jiraSOAP/api.rb
 index fc0e40d..a0cdf33 100644
 --- a/lib/jiraSOAP/api.rb
 +++ b/lib/jiraSOAP/api.rb
@@ -130,15 +416,15 @@ index fc0e40d..a0cdf33 100644
 +    Time.now - start
    end
  
- end&lt;/code&gt;&lt;/pre&gt;&lt;/noscript&gt;&lt;/div&gt;
+ end</code></pre></noscript></div>
 
-&lt;p&gt;As a baseline I measured
-&lt;a href=&quot;https://github.com/jhollingworth/jira4r-jh&quot;&gt;jira4r-jh&lt;/a&gt;,  a recent
+<p>As a baseline I measured
+<a href="https://github.com/jhollingworth/jira4r-jh">jira4r-jh</a>,  a recent
 fork that includes an API that I wanted to use, but the changes needed
-for measurement happened in &lt;code&gt;soap4r&lt;/code&gt;, a dependency:&lt;/p&gt;
+for measurement happened in <code>soap4r</code>, a dependency:</p>
 
-&lt;div&gt;&lt;script src='https://gist.github.com/1144170.js?file=soap4r.diff'&gt;&lt;/script&gt;
-&lt;noscript&gt;&lt;pre&gt;&lt;code&gt;--- /Library/Ruby/Gems/1.8/gems/soap4r-1.5.8/lib/soap/mapping/mapping.rb   2011-08-14 02:27:33.000000000 -0400
+<div><script src='https://gist.github.com/1144170.js?file=soap4r.diff'></script>
+<noscript><pre><code>--- /Library/Ruby/Gems/1.8/gems/soap4r-1.5.8/lib/soap/mapping/mapping.rb   2011-08-14 02:27:33.000000000 -0400
 +++ mapping.rb  2011-08-14 02:28:58.000000000 -0400
 @@ -59,11 +59,13 @@
    end
@@ -150,458 +436,458 @@ for measurement happened in &lt;code&gt;soap4r&lt;/code&gt;, a dependency:&lt;/p
      protect_mapping(opt) do
        obj = _soap2obj(node, registry, klass)
      end
-+    $nums &amp;lt;&amp;lt; Time.now - start
++    $nums &lt;&lt; Time.now - start
      obj
    end
- &lt;/code&gt;&lt;/pre&gt;&lt;/noscript&gt;&lt;/div&gt;
+ </code></pre></noscript></div>
 
-&lt;p&gt;Instead of using &lt;code&gt;benchmark&lt;/code&gt; or &lt;code&gt;minitest&lt;/code&gt;, I opted to just write a
-small script:&lt;/p&gt;
+<p>Instead of using <code>benchmark</code> or <code>minitest</code>, I opted to just write a
+small script:</p>
 
-&lt;div&gt;&lt;script src='https://gist.github.com/1144170.js?file=bench.rb'&gt;&lt;/script&gt;
-&lt;noscript&gt;&lt;pre&gt;&lt;code&gt;require 'rubygems'
+<div><script src='https://gist.github.com/1144170.js?file=bench.rb'></script>
+<noscript><pre><code>require 'rubygems'
 require 'jiraSOAP'
 
 # I changed the URL and credentials as they are sensitive infos
 $db = JIRA::JIRAService.new 'http://jira.domain.com:8080' 
 $db.login 'mark', 'password'
-at_exit { $db.logout}
+at_exit { $db.logout }
 
 def bench_it issues, iterations
   times = []
   iterations.times do
     # use #get_ so it is compatible with older versions
-    times &amp;lt;&amp;lt; $db.get_issues_from_jql_search('key &amp;gt;= &amp;quot;PROJ-1&amp;quot; and key &amp;lt;= &amp;quot;PROJ-1500&amp;quot; order by key asc', issues)
+    times &lt;&lt; $db.get_issues_from_jql_search('key &gt;= &quot;PROJ-1&quot; and key &lt;= &quot;PROJ-1500&quot; order by key asc', issues)
     sleep 1
   end
-  times.inject(0, &amp;amp;:+) / times.size
+  times.inject(0, &amp;:+) / times.size
 end
 
 puts bench_it 1000, 10
 puts bench_it 100, 50
 puts bench_it 10, 100
 puts bench_it 1, 500
-&lt;/code&gt;&lt;/pre&gt;&lt;/noscript&gt;&lt;/div&gt;
+</code></pre></noscript></div>
 
-&lt;p&gt;The oddity there is that I average a larger sample set for a smaller
+<p>The oddity there is that I average a larger sample set for a smaller
 number of issues because I am trying to avoid outliers from the GC
-kicking in. I didn't want to stop the GC as that seemed too
-unrealistic, but I did give a 1 second &lt;code&gt;sleep&lt;/code&gt; period between
+kicking in. I didn&#8217;t want to stop the GC as that seemed too
+unrealistic, but I did give a 1 second <code>sleep</code> period between
 benchmarking runs. Since I am trying to show the difference in
-performance between versions, I don't think it will matter as long as
-I am consistent and the numbers don't end up being very close
-together.&lt;/p&gt;
+performance between versions, I don&#8217;t think it will matter as long as
+I am consistent and the numbers don&#8217;t end up being very close
+together.</p>
 
-&lt;p&gt;Due to differences in how I patched the projects, the benchmark script
-for &lt;code&gt;jira4r&lt;/code&gt; is a little different, I won't embed it here, but it's in
-the &lt;a href=&quot;https://gist.github.com/1144170&quot;&gt;gist&lt;/a&gt; with everything else.&lt;/p&gt;
+<p>Due to differences in how I patched the projects, the benchmark script
+for <code>jira4r</code> is a little different, I won&#8217;t embed it here, but it&#8217;s in
+the <a href="https://gist.github.com/1144170">gist</a> with everything else.</p>
 
-&lt;p&gt;If you are familiar with the JIRA version of SQL, you can see that I
+<p>If you are familiar with the JIRA version of SQL, you can see that I
 am always using the same set of issues for each test run; and the 1000
 issues that were used take up 4.4 MB on disk when dumped to a file.
-Benchmarks on my 2.4 GHz C2D MacBook Pro running OS X Lion. &lt;code&gt;jiraSOAP&lt;/code&gt;
+Benchmarks on my 2.4 GHz C2D MacBook Pro running OS X Lion. <code>jiraSOAP</code>
 benchmarks were run using Ruby 1.9.3preview1 and MacRuby 0.10;
-&lt;code&gt;jira4r&lt;/code&gt; benchmarks were run using Ruby 1.8.7-p249.&lt;/p&gt;
+<code>jira4r</code> benchmarks were run using Ruby 1.8.7-p249.</p>
 
-&lt;h2&gt;The Numbers&lt;/h2&gt;
+<h2>The Numbers</h2>
 
-&lt;p&gt;&lt;img class='' src='http://ferrous26.github.com/images/jiraSOAP_0.5.3_vs_jira4r.png' width='' height='' alt='' title=''&gt;&lt;/p&gt;
+<p><img src="http://ferrous26.github.com/images/jiraSOAP_0.5.3_vs_jira4r.png"></p>
 
-&lt;p&gt;WHAT. THE. FRAK?! &lt;code&gt;jiraSOAP&lt;/code&gt; was more than 2x slower than &lt;code&gt;jira4r&lt;/code&gt; with
-CRuby; with MacRuby the the performance really bad---a whopping 7x
-slower than &lt;code&gt;jira4r&lt;/code&gt; and more than 3x slower than the equivalent code
-running on CRuby.&lt;/p&gt;
+<p>WHAT. THE. FRAK?! <code>jiraSOAP</code> was more than 2x slower than <code>jira4r</code> with
+CRuby; with MacRuby the the performance really bad&#8212;a whopping 7x
+slower than <code>jira4r</code> and more than 3x slower than the equivalent code
+running on CRuby.</p>
 
-&lt;p&gt;Experienced MacRuby users will probably suggest that such low
+<p>Experienced MacRuby users will probably suggest that such low
 performance is a result of lots and lots of memory
-allocations---programs that allocate a lot of memory will usually be
+allocations&#8212;programs that allocate a lot of memory will usually be
 slower on MacRuby. Using that intuition I began tracing through the
-parsing logic and found that the problem was how each &lt;code&gt;Issue&lt;/code&gt; was
-being initialized.&lt;/p&gt;
+parsing logic and found that the problem was how each <code>Issue</code> was
+being initialized.</p>
 
-&lt;div&gt;&lt;figure role=code&gt;&lt;figcaption&gt;&lt;span&gt;bad_code.rb &lt;/span&gt;&lt;/figcaption&gt;
- &lt;div class=&quot;highlight&quot;&gt;&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre class=&quot;line-numbers&quot;&gt;&lt;span class='line'&gt;1&lt;/span&gt;
-&lt;span class='line'&gt;2&lt;/span&gt;
-&lt;span class='line'&gt;3&lt;/span&gt;
-&lt;span class='line'&gt;4&lt;/span&gt;
-&lt;span class='line'&gt;5&lt;/span&gt;
-&lt;span class='line'&gt;6&lt;/span&gt;
-&lt;span class='line'&gt;7&lt;/span&gt;
-&lt;span class='line'&gt;8&lt;/span&gt;
-&lt;span class='line'&gt;9&lt;/span&gt;
-&lt;span class='line'&gt;10&lt;/span&gt;
-&lt;span class='line'&gt;11&lt;/span&gt;
-&lt;span class='line'&gt;12&lt;/span&gt;
-&lt;span class='line'&gt;13&lt;/span&gt;
-&lt;span class='line'&gt;14&lt;/span&gt;
-&lt;span class='line'&gt;15&lt;/span&gt;
-&lt;span class='line'&gt;16&lt;/span&gt;
-&lt;span class='line'&gt;17&lt;/span&gt;
-&lt;span class='line'&gt;18&lt;/span&gt;
-&lt;span class='line'&gt;19&lt;/span&gt;
-&lt;span class='line'&gt;20&lt;/span&gt;
-&lt;span class='line'&gt;21&lt;/span&gt;
-&lt;span class='line'&gt;22&lt;/span&gt;
-&lt;span class='line'&gt;23&lt;/span&gt;
-&lt;span class='line'&gt;24&lt;/span&gt;
-&lt;span class='line'&gt;25&lt;/span&gt;
-&lt;span class='line'&gt;26&lt;/span&gt;
-&lt;span class='line'&gt;27&lt;/span&gt;
-&lt;span class='line'&gt;28&lt;/span&gt;
-&lt;/pre&gt;&lt;/td&gt;&lt;td class='code' width='100%'&gt;&lt;pre&gt;&lt;code class='rb'&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;initialize_with_xml_fragment&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;frag&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;k&quot;&gt;super&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;frag&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@summary&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@description&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@type_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@status_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@assignee_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@reporter_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@priority_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@project_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@resolution_id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@environment&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@votes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@last_updated&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@create_date&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@due_date&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@affects_versions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@fix_versions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@components&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@custom_field_values&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@attachment_names&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;      &lt;span class=&quot;n&quot;&gt;frag&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nodes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;key&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                 &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;summary&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;             &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;description&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;         &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;type&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;status&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;              &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;assignee&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;            &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;reporter&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;            &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;priority&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;            &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;project&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;             &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;resolution&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;          &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;environment&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;         &lt;span class=&quot;ss&quot;&gt;:to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;votes&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;               &lt;span class=&quot;ss&quot;&gt;:to_i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;updated&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;             &lt;span class=&quot;ss&quot;&gt;:to_date&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;created&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;             &lt;span class=&quot;ss&quot;&gt;:to_date&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;duedate&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;             &lt;span class=&quot;ss&quot;&gt;:to_date&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;affectsVersions/*&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;   &lt;span class=&quot;ss&quot;&gt;:to_objects&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;JIRA&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Version&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;fixVersions/*&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;       &lt;span class=&quot;ss&quot;&gt;:to_objects&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;JIRA&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Version&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;components/*&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;        &lt;span class=&quot;ss&quot;&gt;:to_objects&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;JIRA&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Component&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;customFieldValues/*&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:to_objects&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;JIRA&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;CustomFieldValue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;                  &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;attachmentNames/*&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;   &lt;span class=&quot;ss&quot;&gt;:to_ss&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
-&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/figure&gt;&lt;/div&gt;
+<figure class='code'><figcaption><span>bad_code.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='rb'><span class='line'>  <span class="k">def</span> <span class="nf">initialize_with_xml_fragment</span><span class="p">(</span><span class="n">frag</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">super</span> <span class="n">frag</span>
+</span><span class='line'>    <span class="vi">@key</span><span class="p">,</span> <span class="vi">@summary</span><span class="p">,</span> <span class="vi">@description</span><span class="p">,</span> <span class="vi">@type_id</span><span class="p">,</span> <span class="vi">@status_id</span><span class="p">,</span>
+</span><span class='line'>    <span class="vi">@assignee_name</span><span class="p">,</span> <span class="vi">@reporter_name</span><span class="p">,</span> <span class="vi">@priority_id</span><span class="p">,</span> <span class="vi">@project_name</span><span class="p">,</span>
+</span><span class='line'>    <span class="vi">@resolution_id</span><span class="p">,</span> <span class="vi">@environment</span><span class="p">,</span> <span class="vi">@votes</span><span class="p">,</span> <span class="vi">@last_updated</span><span class="p">,</span> <span class="vi">@create_date</span><span class="p">,</span>
+</span><span class='line'>    <span class="vi">@due_date</span><span class="p">,</span> <span class="vi">@affects_versions</span><span class="p">,</span> <span class="vi">@fix_versions</span><span class="p">,</span> <span class="vi">@components</span><span class="p">,</span>
+</span><span class='line'>    <span class="vi">@custom_field_values</span><span class="p">,</span> <span class="vi">@attachment_names</span> <span class="o">=</span>
+</span><span class='line'>      <span class="n">frag</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span> <span class="o">[</span><span class="s1">&#39;key&#39;</span><span class="p">,</span>                 <span class="ss">:to_s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span>             <span class="ss">:to_s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;description&#39;</span><span class="p">,</span>         <span class="ss">:to_s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;type&#39;</span><span class="p">,</span>                <span class="ss">:to_s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;status&#39;</span><span class="p">,</span>              <span class="ss">:to_s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;assignee&#39;</span><span class="p">,</span>            <span class="ss">:to_s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;reporter&#39;</span><span class="p">,</span>            <span class="ss">:to_s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;priority&#39;</span><span class="p">,</span>            <span class="ss">:to_s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;project&#39;</span><span class="p">,</span>             <span class="ss">:to_s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;resolution&#39;</span><span class="p">,</span>          <span class="ss">:to_s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;environment&#39;</span><span class="p">,</span>         <span class="ss">:to_s</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;votes&#39;</span><span class="p">,</span>               <span class="ss">:to_i</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;updated&#39;</span><span class="p">,</span>             <span class="ss">:to_date</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;created&#39;</span><span class="p">,</span>             <span class="ss">:to_date</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;duedate&#39;</span><span class="p">,</span>             <span class="ss">:to_date</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;affectsVersions/*&#39;</span><span class="p">,</span>   <span class="ss">:to_objects</span><span class="p">,</span> <span class="no">JIRA</span><span class="o">::</span><span class="no">Version</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;fixVersions/*&#39;</span><span class="p">,</span>       <span class="ss">:to_objects</span><span class="p">,</span> <span class="no">JIRA</span><span class="o">::</span><span class="no">Version</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;components/*&#39;</span><span class="p">,</span>        <span class="ss">:to_objects</span><span class="p">,</span> <span class="no">JIRA</span><span class="o">::</span><span class="no">Component</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;customFieldValues/*&#39;</span><span class="p">,</span> <span class="ss">:to_objects</span><span class="p">,</span> <span class="no">JIRA</span><span class="o">::</span><span class="no">CustomFieldValue</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>                  <span class="o">[</span><span class="s1">&#39;attachmentNames/*&#39;</span><span class="p">,</span>   <span class="ss">:to_ss</span><span class="o">]</span> <span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
 
-&lt;p&gt;A quick glance at the code will tell you that it has to &lt;code&gt;dup&lt;/code&gt; each
+<p>A quick glance at the code will tell you that it has to <code>dup</code> each
 array and each element of the array for each call. But wait, it gets
 worse! Those strings are used in an the XPath query which is run on
 the same XML fragment for each attribute. The symbol elements are then
-used as the name of the transformer to be used on the XML node's inner
+used as the name of the transformer to be used on the XML node&#8217;s inner
 text; the data transformers could be simple and just take the
 string from the inner text, or end up triggering the
 initialization of more objects that needed to be parsed
-(&lt;code&gt;#to_objects&lt;/code&gt;), or it could initialize an array of Nazi soldiers
-(&lt;code&gt;#to_ss&lt;/code&gt;).&lt;/p&gt;
+(<code>#to_objects</code>), or it could initialize an array of Nazi soldiers
+(<code>#to_ss</code>).</p>
 
-&lt;p&gt;So for each issue, the virtual machine was constantly reallocating a
+<p>So for each issue, the virtual machine was constantly reallocating a
 lot of constant data, and re-walking the XML fragment for each XPath
 query. That makes two separate problems that should be fixable and
 which will undoubtedly improve performance and get rid of some
-repetitive code.&lt;/p&gt;
+repetitive code.</p>
 
-&lt;h2&gt;Plan of Attack&lt;/h2&gt;
+<h2>Plan of Attack</h2>
 
-&lt;p&gt;To fix iterating through the XML fragment for each attribute, I had to
+<p>To fix iterating through the XML fragment for each attribute, I had to
 stop using XPath. While XPath is easier to use it was a bad fit in the
 first place since data from every node of the fragment was being
-used. I'd say that putting XPath in the recommended steps without a
-caveat was a bit misleading.&lt;/p&gt;
+used. I&#8217;d say that putting XPath in the recommended steps without a
+caveat was a bit misleading.</p>
 
-&lt;p&gt;Some quick research revealed that the best choice for this problem was
-a &lt;a href=&quot;http://en.wikipedia.org/wiki/XML#Pull_parsing&quot;&gt;pull parser&lt;/a&gt; since
+<p>Some quick research revealed that the best choice for this problem was
+a <a href="http://en.wikipedia.org/wiki/XML#Pull_parsing">pull parser</a> since
 it only iterates over the fragment once. The important thing to note
 here is that this change will cause the logic to switch
-around---instead of getting each attribute to ask for some XML it will
+around&#8212;instead of getting each attribute to ask for some XML it will
 now get each XML node to ask for an attribute. What makes this faster
 is that asking for a node required the use of XPath whereas asking for
-an attribute could be as simple as a hash look up.&lt;/p&gt;
+an attribute could be as simple as a hash look up.</p>
 
-&lt;p&gt;Given that the XML should be highly structured, I could have iterated
+<p>Given that the XML should be highly structured, I could have iterated
 through both the XML nodes and an array with the attribute names to
 just match the nodes and attributes up; however I was not to sure on
 the ordering of nodes with respect to sub-classing, perhaps it was in
-alphabetical order, but I would have to go through the WSDL, and also
-the XML dump for each type to be sure. Since I didn't want to do that
-I took a potential performance hit and used a hash where the node name
-corresponded to a key.&lt;/p&gt;
+alphabetical order, but I would have to go through the WSDL for each
+version of JIRA that I wanted to support. Since I didn&#8217;t want to do
+that took a potential performance hit and used a hash where the node
+name corresponded to a key.</p>
 
-&lt;p&gt;Using this new strategy, the parsing logic was totally generic and I
-refactored initialization of all XML entities to a common method:&lt;/p&gt;
+<p>Using this new strategy, the parsing logic was totally generic and I
+refactored initialization of all XML entities to a common method:</p>
 
-&lt;div&gt;&lt;figure role=code&gt;&lt;figcaption&gt;&lt;span&gt;init.rb &lt;/span&gt;&lt;/figcaption&gt;
- &lt;div class=&quot;highlight&quot;&gt;&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre class=&quot;line-numbers&quot;&gt;&lt;span class='line'&gt;1&lt;/span&gt;
-&lt;span class='line'&gt;2&lt;/span&gt;
-&lt;span class='line'&gt;3&lt;/span&gt;
-&lt;span class='line'&gt;4&lt;/span&gt;
-&lt;span class='line'&gt;5&lt;/span&gt;
-&lt;span class='line'&gt;6&lt;/span&gt;
-&lt;span class='line'&gt;7&lt;/span&gt;
-&lt;/pre&gt;&lt;/td&gt;&lt;td class='code' width='100%'&gt;&lt;pre&gt;&lt;code class='rb'&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;initialize_with_xml&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;frag&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;n&quot;&gt;attributes&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;parse&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;n&quot;&gt;frag&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;children&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;each&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;      &lt;span class=&quot;n&quot;&gt;action&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;attributes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;      &lt;span class=&quot;nb&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;action&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;action&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;action&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
-&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/figure&gt;&lt;/div&gt;
+<figure class='code'><figcaption><span>init.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='rb'><span class='line'>  <span class="k">def</span> <span class="nf">initialize_with_xml</span> <span class="n">frag</span>
+</span><span class='line'>    <span class="n">attributes</span> <span class="o">=</span> <span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">parse</span>
+</span><span class='line'>    <span class="n">frag</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">node</span><span class="o">|</span>
+</span><span class='line'>      <span class="n">action</span> <span class="o">=</span> <span class="n">attributes</span><span class="o">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="o">]</span>
+</span><span class='line'>      <span class="nb">self</span><span class="o">.</span><span class="n">send</span> <span class="n">action</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">,</span> <span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">send</span> <span class="o">*</span><span class="n">action</span><span class="o">[</span><span class="mi">1</span><span class="o">.</span><span class="n">.</span><span class="o">-</span><span class="mi">1</span><span class="o">]</span><span class="p">)</span> <span class="k">if</span> <span class="n">action</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>  <span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
 
-&lt;p&gt;Each class had its own parse map, and you can see from the code
-snippet. By declaring attributes using a &lt;code&gt;data-mapper&lt;/code&gt; style of class
+<p>Each class had its own parse map, and you can see from the code
+snippet. By declaring attributes using a <code>data-mapper</code> style of class
 method, the maps were built up for each class. The interesting part
 was getting inheritance working for parse maps; at first I had the
 obvious solution which looked a bit hacky but then I learned about
-some rarely used methods in ruby.&lt;/p&gt;
+some rarely used methods in ruby.</p>
 
-&lt;h3&gt;Ruby's Less Frequently Used Metaprogramming Callbacks&lt;/h3&gt;
+<h3>Ruby&#8217;s Less Frequently Used Metaprogramming Callbacks</h3>
 
-&lt;p&gt;&lt;code&gt;Class#inherited&lt;/code&gt;, &lt;code&gt;Module#included&lt;/code&gt;, and &lt;code&gt;Module#extended&lt;/code&gt; are
+<p><code>Class#inherited</code>, <code>Module#included</code>, and <code>Module#extended</code> are
 callbacks which are executed each time a Class/Module is subclassed,
 included, or extended. You can override the default implementation,
-which is an empty method, to provide custom inheritance/mixin rules.&lt;/p&gt;
+which is an empty method, to provide custom inheritance/mixin rules.</p>
 
-&lt;p&gt;This turns logic that looks like this:&lt;/p&gt;
+<p>This turns logic that looks like this:</p>
 
-&lt;div&gt;&lt;figure role=code&gt;&lt;figcaption&gt;&lt;span&gt;inherited.rb &lt;/span&gt;&lt;/figcaption&gt;
- &lt;div class=&quot;highlight&quot;&gt;&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre class=&quot;line-numbers&quot;&gt;&lt;span class='line'&gt;1&lt;/span&gt;
-&lt;span class='line'&gt;2&lt;/span&gt;
-&lt;span class='line'&gt;3&lt;/span&gt;
-&lt;span class='line'&gt;4&lt;/span&gt;
-&lt;span class='line'&gt;5&lt;/span&gt;
-&lt;/pre&gt;&lt;/td&gt;&lt;td class='code' width='100%'&gt;&lt;pre&gt;&lt;code class='rb'&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;property&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;attr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;transformer&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;vi&quot;&gt;@parse&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;superclass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dup&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
-&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/figure&gt;&lt;/div&gt;
+<figure class='code'><figcaption><span>inherited.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='rb'><span class='line'>  <span class="k">def</span> <span class="nf">property</span> <span class="nb">name</span><span class="p">,</span> <span class="kp">attr</span><span class="p">,</span> <span class="n">transformer</span>
+</span><span class='line'>    <span class="c1"># ...</span>
+</span><span class='line'>    <span class="vi">@parse</span> <span class="o">||=</span> <span class="n">superclass</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">dup</span>
+</span><span class='line'>    <span class="c1"># ...</span>
+</span><span class='line'>  <span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
 
-&lt;p&gt;into a one line method like this:&lt;/p&gt;
+<p>into a one line method like this:</p>
 
-&lt;div&gt;&lt;figure role=code&gt;&lt;figcaption&gt;&lt;span&gt;inherited.rb &lt;/span&gt;&lt;/figcaption&gt;
- &lt;div class=&quot;highlight&quot;&gt;&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre class=&quot;line-numbers&quot;&gt;&lt;span class='line'&gt;1&lt;/span&gt;
-&lt;span class='line'&gt;2&lt;/span&gt;
-&lt;span class='line'&gt;3&lt;/span&gt;
-&lt;/pre&gt;&lt;/td&gt;&lt;td class='code' width='100%'&gt;&lt;pre&gt;&lt;code class='rb'&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;inherited&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;subclass&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;    &lt;span class=&quot;n&quot;&gt;subclass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;parse&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;vi&quot;&gt;@parse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dup&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
-&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/figure&gt;&lt;/div&gt;
+<figure class='code'><figcaption><span>inherited.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='rb'><span class='line'>  <span class="k">def</span> <span class="nf">inherited</span> <span class="n">subclass</span>
+</span><span class='line'>    <span class="n">subclass</span><span class="o">.</span><span class="n">parse</span> <span class="o">=</span> <span class="vi">@parse</span><span class="o">.</span><span class="n">dup</span>
+</span><span class='line'>  <span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
 
-&lt;p&gt;Which I think is much nicer since it separates the logic of inheriting
+<p>Which I think is much nicer since it separates the logic of inheriting
 a parse map from adding a new property. It is also faster since it
 does not need to check if the value is already initialized which is a
-savings of a couple hundred checks at boot time.&lt;/p&gt;
+savings of a couple hundred checks at boot time.</p>
 
-&lt;p&gt;I found out about this callback when I was going over the
-&lt;a href=&quot;https://github.com/ferrous26/hotcocoa/blob/master/lib/hotcocoa/behaviors.rb&quot;&gt;HotCocoa::Behaviors&lt;/a&gt;
+<p>I found out about this callback when I was going over the
+<a href="https://github.com/ferrous26/hotcocoa/blob/master/lib/hotcocoa/behaviors.rb">HotCocoa::Behaviors</a>
 module, but I have since also found out that it is the technique used
-by &lt;code&gt;minitest&lt;/code&gt; in order to keep track of which classes have tests.&lt;/p&gt;
+by <code>minitest</code> in order to keep track of which classes have tests.</p>
 
-&lt;h2&gt;Jumping Back To The Numbers&lt;/h2&gt;
+<h2>Jumping Back To The Numbers</h2>
 
-&lt;p&gt;With the new parsing logic, how do the two gems stack up?&lt;/p&gt;
+<p>With the new parsing logic, how do the two gems stack up?</p>
 
-&lt;p&gt;&lt;img class='' src='http://ferrous26.github.com/images/jiraSOAP_0.7.1_vs_jira4r.png' width='' height='' alt='' title=''&gt;&lt;/p&gt;
+<p><img src="http://ferrous26.github.com/images/jiraSOAP_0.7.1_vs_jira4r.png"></p>
 
-&lt;p&gt;About a 2x improvement! CRuby &lt;code&gt;jiraSOAP&lt;/code&gt; is just a bit slower
-than &lt;code&gt;jira4r&lt;/code&gt;, and MacRuby &lt;code&gt;jiraSOAP&lt;/code&gt; is about as fast as CRuby
-&lt;code&gt;jiraSOAP&lt;/code&gt; was before the change.&lt;/p&gt;
+<p>About a 2x improvement! CRuby <code>jiraSOAP</code> is just a bit slower
+than <code>jira4r</code>, and MacRuby <code>jiraSOAP</code> is about as fast as CRuby
+<code>jiraSOAP</code> was before the change.</p>
 
-&lt;p&gt;Given the performance gap, I still suspected the issue is that there
+<p>Given the performance gap, I still suspected the issue is that there
 are too many allocations somewhere, but probably not in my code
-anymore. That is when I started looking into &lt;code&gt;handsoap&lt;/code&gt;'s source code
-to see what goes on when I parse XML.&lt;/p&gt;
+anymore. That is when I started looking into <code>handsoap</code>&#8217;s source code
+to see what goes on when I parse XML.</p>
 
-&lt;p&gt;It turns out that their parsing abstraction was the gold mine I should
+<p>It turns out that their parsing abstraction was the gold mine I should
 have been looking for earlier. Specifically, their method for getting
 the inner text of an XML node,
-&lt;a href=&quot;http://rdoc.info/gems/handsoap/1.1.8/Handsoap/XmlQueryFront/NokogiriDriver#to_s-instance_method&quot;&gt;#to_s&lt;/a&gt;.&lt;/p&gt;
+<a href="http://rdoc.info/gems/handsoap/1.1.8/Handsoap/XmlQueryFront/NokogiriDriver#to_s-instance_method">#to_s</a>.</p>
 
-&lt;p&gt;That method does a bit of work to handle cases that are not relevant to
-&lt;code&gt;jiraSOAP&lt;/code&gt;, but that detail is very minor when compared to calling
-&lt;a href=&quot;http://rdoc.info/gems/nokogiri/1.5.0/Nokogiri/XML/Node#serialize-instance_method&quot;&gt;Node#serialize&lt;/a&gt;
-in &lt;code&gt;nokogiri&lt;/code&gt; which ends up unpacking two options hashes before it
+<p>That method does a bit of work to handle cases that are not relevant to
+<code>jiraSOAP</code>, but that detail is very minor when compared to calling
+<a href="http://rdoc.info/gems/nokogiri/1.5.0/Nokogiri/XML/Node#serialize-instance_method">Node#serialize</a>
+in <code>nokogiri</code> which ends up unpacking two options hashes before it
 gets to the point of extracting the inner text, which then returns to
-&lt;code&gt;handsoap&lt;/code&gt; so that it can run 5 chained &lt;code&gt;#gsub&lt;/code&gt; calls.&lt;/p&gt;
+<code>handsoap</code> so that it can run 5 chained <code>#gsub</code> calls.</p>
 
-&lt;p&gt;The real kicker is that all the data transformers call&lt;code&gt;#to_s&lt;/code&gt; first to
+<p>The real kicker is that all the data transformers call<code>#to_s</code> first to
 get the nodes inner text. For an issue with 21 attributes, including
-nested structures, that is at least 21 calls to &lt;code&gt;#to_s&lt;/code&gt; which
-allocates, among other things, the following:&lt;/p&gt;
+nested structures, that is at least 21 calls to <code>#to_s</code> which
+allocates, among other things, the following:</p>
 
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;#to_s&lt;/code&gt;
+<ul>
+<li><code>#to_s</code>
 
-&lt;ul&gt;
-&lt;li&gt;a Hash for options with a Symbol to String key-value pair (3)&lt;/li&gt;
-&lt;li&gt;5 &lt;code&gt;gsub&lt;/code&gt; calls with literal String arguments that need to be duped
-(15)&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;#serialize&lt;/code&gt;
+<ul>
+<li>a Hash for options with a Symbol to String key-value pair (3)</li>
+<li>5 <code>gsub</code> calls with literal String arguments that need to be duped
+(15)</li>
+</ul></li>
+<li><code>#serialize</code>
 
-&lt;ul&gt;
-&lt;li&gt;a String to setup the encoding information (1)&lt;/li&gt;
-&lt;li&gt;a StringIO to buffer the inner text into the string that was setup
-before (1)&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;#write_to&lt;/code&gt;
+<ul>
+<li>a String to setup the encoding information (1)</li>
+<li>a StringIO to buffer the inner text into the string that was setup
+before (1)</li>
+</ul></li>
+<li><code>#write_to</code>
 
-&lt;ul&gt;
-&lt;li&gt;a String will have to be duped for the &lt;code&gt;indent_text&lt;/code&gt; option in
-this case (1)&lt;/li&gt;
-&lt;li&gt;a SaveOptions object (1)&lt;/li&gt;
-&lt;li&gt;a String that will be created by &lt;code&gt;indent_text * indent_times&lt;/code&gt; (1)&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;
+<ul>
+<li>a String will have to be duped for the <code>indent_text</code> option in
+this case (1)</li>
+<li>a SaveOptions object (1)</li>
+<li>a String that will be created by <code>indent_text * indent_times</code> (1)</li>
+</ul></li>
+</ul>
 
-&lt;p&gt;That is at least 23 unneeded allocations per call of &lt;code&gt;#to_s&lt;/code&gt;, which
+<p>That is at least 23 unneeded allocations per call of <code>#to_s</code>, which
 is 483 allocations per issue object and 483,000 allocations for the
-1000 issue sample.&lt;/p&gt;
+1000 issue sample.</p>
 
-&lt;p&gt;Keep in mind that that number is for the minimum number of attributes;
-an issue has two arrays of &lt;code&gt;Version&lt;/code&gt; objects, one for affected
+<p>Keep in mind that that number is for the minimum number of attributes;
+an issue has two arrays of <code>Version</code> objects, one for affected
 versions and one for fix versions, and each version has 6 attributes;
-issues also have an array of &lt;code&gt;CustomFieldValue&lt;/code&gt; objects with 3
+issues also have an array of <code>CustomFieldValue</code> objects with 3
 attributes each; and issues also have an array of attachment name
 strings. Realistically, most issues will have an affects version and
 probably a fix version; many databases also use custom field.
 483,000 allocations is actually a conservative estimate and the real
-number of wasteful allocations is is well over 500,000.&lt;/p&gt;
+number of wasteful allocations is is well over 500,000.</p>
 
-&lt;h3&gt;Fixing The Problem&lt;/h3&gt;
+<h3>Fixing The Problem</h3>
 
-&lt;p&gt;Fixing things in &lt;code&gt;handsoap&lt;/code&gt; was a possibility, but I had already
-opened a pull request in which the &lt;code&gt;handsoap&lt;/code&gt; devs were responding
-too infrequently. I decided that &lt;code&gt;handsoap&lt;/code&gt; was unfairly allocated
+<p>Fixing things in <code>handsoap</code> was a possibility, but I had already
+opened a pull request in which the <code>handsoap</code> devs were responding
+too infrequently. I decided that <code>handsoap</code> was unfairly allocated
 some resources that I wanted and I took upon myself to fix the problem
-by liberating the oppressed methods---I went freedom patching.&lt;/p&gt;
+by liberating the oppressed methods&#8212;I went freedom patching.</p>
 
-&lt;p&gt;As mentioned earlier, I didn't need code to handle any of the special
-cases. I also think that calling &lt;code&gt;gsub&lt;/code&gt; to swap out escaped characters
+<p>As mentioned earlier, I didn&#8217;t need code to handle any of the special
+cases. I also think that calling <code>gsub</code> to swap out escaped characters
 is a waste since the data will end up in an HTML document more often
-than not.&lt;/p&gt;
+than not.</p>
 
-&lt;p&gt;After checking, I found that I could just call
-&lt;a href=&quot;http://rdoc.info/gems/nokogiri/1.5.0/Nokogiri/XML/Node#content-instance_method&quot;&gt;Node#content&lt;/a&gt;
-to get the inner text of an XML node. That method doesn't do any of
-unnecessary work that I outlined earlier, it doesn't even enforce an
-encoding.&lt;/p&gt;
+<p>After checking, I found that I could just call
+<a href="http://rdoc.info/gems/nokogiri/1.5.0/Nokogiri/XML/Node#content-instance_method">Node#content</a>
+to get the inner text of an XML node. That method doesn&#8217;t do any of
+unnecessary work that I outlined earlier, it doesn&#8217;t even enforce an
+encoding.</p>
 
-&lt;h2&gt;Newest Numbers&lt;/h2&gt;
+<h2>Newest Numbers</h2>
 
-&lt;p&gt;How do the performance numbers look after bypassing the extraneous
-code paths of &lt;code&gt;handsoap&lt;/code&gt;?&lt;/p&gt;
+<p>How do the performance numbers look after bypassing the extraneous
+code paths of <code>handsoap</code>?</p>
 
-&lt;p&gt;&lt;img class='' src='http://ferrous26.github.com/images/jiraSOAP_0.9.0_vs_jira4r.png' width='' height='' alt='' title=''&gt;&lt;/p&gt;
+<p><img src="http://ferrous26.github.com/images/jiraSOAP_0.9.0_vs_jira4r.png"></p>
 
-&lt;p&gt;Really good! &lt;code&gt;jiraSOAP&lt;/code&gt; on CRuby now runs so much faster that the
-scaling for the graphs is all messed up. Even &lt;code&gt;jiraSOAP&lt;/code&gt; on MacRuby is
-now faster than &lt;code&gt;jira4r&lt;/code&gt;.&lt;/p&gt;
+<p>Really good! <code>jiraSOAP</code> on CRuby now runs so much faster that the
+scaling for the graphs is all messed up. Even <code>jiraSOAP</code> on MacRuby is
+now faster than <code>jira4r</code>.</p>
 
-&lt;p&gt;I also haven't had any bugs logged related to encoding problems or
+<p>I also haven&#8217;t had any bugs logged related to encoding problems or
 escaped characters, so I think this is a big win. I even went and
-benchmarked past 1000 issues.&lt;/p&gt;
+benchmarked past 1000 issues.</p>
 
-&lt;h3&gt;How Does It Scale?&lt;/h3&gt;
+<h3>How Does It Scale?</h3>
 
-&lt;p&gt;&lt;img class='' src='http://ferrous26.github.com/images/jiraSOAP_0.9.0_past_1000.png' width='' height='' alt='' title=''&gt;&lt;/p&gt;
+<p><img src="http://ferrous26.github.com/images/jiraSOAP_0.9.0_past_1000.png"></p>
 
-&lt;p&gt;&lt;code&gt;jiraSOAP&lt;/code&gt; now parses ~2250 issues/s, which is ~10MB/s, which I
+<p><code>jiraSOAP</code> now parses ~2250 issues/s, which is ~10MB/s, which I
 think is pretty good. It also looks like the new lazy-sweep GC changes
 in ruby 1.9.3 kick in somewhere between 3000-4000 issues which is very
-cool.&lt;/p&gt;
+cool.</p>
 
-&lt;p&gt;The parsing can still get faster without resorting to C (nokogiri
+<p>The parsing can still get faster without resorting to C (nokogiri
 excepted); there are other solutions I have not tried yet because I
-haven't had the time lately.&lt;/p&gt;
+haven&#8217;t had the time lately.</p>
 
-&lt;p&gt;One such solution would be to cache the XML fragment and only parse it
+<p>One such solution would be to cache the XML fragment and only parse it
 on demand. I would have to go back to XPath in this case, but since
 parsing is not done until needed it will get the standard laziness
 trade off of maybe never having to parse the XML and saving
-potentially many allocations.&lt;/p&gt;
+potentially many allocations.</p>
 
-&lt;p&gt;Benchmarking such a change would be more challenging since it would
+<p>Benchmarking such a change would be more challenging since it would
 need to take into account a much larger sample of the different ways
-in which people are using &lt;code&gt;jiraSOAP&lt;/code&gt;; how man attributes are used
-normally and how often?&lt;/p&gt;
+in which people are using <code>jiraSOAP</code>; how man attributes are used
+normally and how often?</p>
 
-&lt;p&gt;Then there is the memory-time trade off to consider, the XML document
+<p>Then there is the memory-time trade off to consider, the XML document
 is, at some level, a very large string, which is not nearly as memory
 efficient as the structures the data would be parsed into and would
-be expensive to keep around for a long period of time.&lt;/p&gt;
+be expensive to keep around for a long period of time.</p>
 
-&lt;p&gt;The lack of understanding on how other people use the gem is the
+<p>The lack of understanding on how other people use the gem is the
 reason why it would be difficult to tell whether or not it would be
 faster in the general case or at least worth the memory trade off. I
 know at least one person was using the gem as part of a rails app,
-but I don't know if it was a main component or simply a way
-to log bugs when errors occurred.&lt;/p&gt;
+but I don&#8217;t know if it was a main component or simply a way
+to log bugs when errors occurred.</p>
 
-&lt;p&gt;I could at least go as far as to find the threshold at which it
-becomes worthwhile by actually implementing the change, but I don't
+<p>I could at least go as far as to find the threshold at which it
+becomes worthwhile by actually implementing the change, but I don&#8217;t
 have the time right now and at this point the performance bottleneck
-is probably not parsing anymore.&lt;/p&gt;
+is probably not parsing anymore.</p>
 
-&lt;h2&gt;Next Steps&lt;/h2&gt;
+<h2>Next Steps</h2>
 
-&lt;p&gt;The real performance bottleneck now is the use of &lt;code&gt;net/http&lt;/code&gt; for the
-networking layer. With CRuby you can easily tell &lt;code&gt;handsoap&lt;/code&gt; to use a
-different back end for HTTP communication. &lt;code&gt;curb&lt;/code&gt; is &lt;code&gt;handsoap&lt;/code&gt;'s
-recommended back end and is much faster than &lt;code&gt;net/http&lt;/code&gt;, but it is not
+<p>The real performance bottleneck now is the use of <code>net/http</code> for the
+networking layer. With CRuby you can easily tell <code>handsoap</code> to use a
+different back end for HTTP communication. <code>curb</code> is <code>handsoap</code>&#8217;s
+recommended back end and is much faster than <code>net/http</code>, but it is not
 compatible with MacRuby which is why I changed the default to
-&lt;code&gt;net/http&lt;/code&gt;.&lt;/p&gt;
+<code>net/http</code>.</p>
 
-&lt;p&gt;If you are using CRuby then you are better off switching to &lt;code&gt;curb&lt;/code&gt; or
-&lt;code&gt;httpclient&lt;/code&gt; after loading &lt;code&gt;jiraSOAP&lt;/code&gt;:&lt;/p&gt;
+<p>If you are using CRuby then you are better off switching to <code>curb</code> or
+<code>httpclient</code> after loading <code>jiraSOAP</code>:</p>
 
-&lt;div&gt;&lt;figure role=code&gt;&lt;figcaption&gt;&lt;span&gt;switch.rb &lt;/span&gt;&lt;/figcaption&gt;
- &lt;div class=&quot;highlight&quot;&gt;&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre class=&quot;line-numbers&quot;&gt;&lt;span class='line'&gt;1&lt;/span&gt;
-&lt;span class='line'&gt;2&lt;/span&gt;
-&lt;span class='line'&gt;3&lt;/span&gt;
-&lt;span class='line'&gt;4&lt;/span&gt;
-&lt;/pre&gt;&lt;/td&gt;&lt;td class='code' width='100%'&gt;&lt;pre&gt;&lt;code class='rb'&gt;&lt;div class='line'&gt;  &lt;span class=&quot;nb&quot;&gt;require&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;jiraSOAP&amp;#39;&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;no&quot;&gt;Handsoap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;http_driver&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:http_client&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;c1&quot;&gt;# or&lt;/span&gt;
-&lt;/div&gt;&lt;div class='line'&gt;  &lt;span class=&quot;no&quot;&gt;Handsoap&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;http_driver&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:curb&lt;/span&gt;
-&lt;/div&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/figure&gt;&lt;/div&gt;
+<figure class='code'><figcaption><span>switch.rb </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='rb'><span class='line'>  <span class="nb">require</span> <span class="s1">&#39;jiraSOAP&#39;</span>
+</span><span class='line'>  <span class="no">Handsoap</span><span class="o">.</span><span class="n">http_driver</span> <span class="o">=</span> <span class="ss">:http_client</span>
+</span><span class='line'>  <span class="c1"># or</span>
+</span><span class='line'>  <span class="no">Handsoap</span><span class="o">.</span><span class="n">http_driver</span> <span class="o">=</span> <span class="ss">:curb</span>
+</span></code></pre></td></tr></table></div></figure>
 
-&lt;p&gt;You can also use &lt;code&gt;eventmachine&lt;/code&gt; with &lt;code&gt;handsoap&lt;/code&gt;, but it will not work
-with &lt;code&gt;jiraSOAP&lt;/code&gt; out of the box, you would need to reimplement the 4
-private methods in &lt;code&gt;lib/jiraSOAP/api.rb&lt;/code&gt;.&lt;/p&gt;
+<p>You can also use <code>eventmachine</code> with <code>handsoap</code>, but it will not work
+with <code>jiraSOAP</code> out of the box, you would need to reimplement the 4
+private methods in <code>lib/jiraSOAP/api.rb</code>.</p>
 
-&lt;p&gt;In the future I think I will be able to release the gem once for each
-&lt;code&gt;RUBY_ENGINE&lt;/code&gt; so that each ruby can have proper defaults. It would
+<p>In the future I think I will be able to release the gem once for each
+<code>RUBY_ENGINE</code> so that each ruby can have proper defaults. It would
 also be nice to have a MacRuby specific back end that uses Cocoa for
-the networking layer.&lt;/p&gt;
+the networking layer.</p>
 
-&lt;p&gt;Though, by this time next year I expect that the JIRA REST API will
-have caught up to the SOAP API and &lt;code&gt;jiraSOAP&lt;/code&gt; will become
-obsolete. So I don't think I will be spending too much more time on
-this project. Besides, &lt;code&gt;jiraSOAP&lt;/code&gt; now implements 99% of the API that I
+<p>Though, by this time next year I expect that the JIRA REST API will
+have caught up to the SOAP API and <code>jiraSOAP</code> will become
+obsolete. So I don&#8217;t think I will be spending too much more time on
+this project. Besides, <code>jiraSOAP</code> now implements 99% of the API that I
 care about and the implementation is simple enough and stable enough
-to have other APIs easily added by users who want them.&lt;/p&gt;
-</content>
+to have other APIs easily added by users who want them.</p>
+]]></content>
   </entry>
   
   <entry>
-    <title>First!</title>
+    <title type="html"><![CDATA[First!]]></title>
     <link href="http://ferrous26.github.com/blog/2011/08/03/first/"/>
     <updated>2011-08-03T22:40:00-04:00</updated>
     <id>http://ferrous26.github.com/blog/2011/08/03/first</id>
-    <content type="html">&lt;p&gt;My first blog post. Ever.&lt;/p&gt;
+    <content type="html"><![CDATA[<p>My first blog post. Ever.</p>
 
-&lt;p&gt;I've been thinking about starting a blog for a few months now, but I
-could never find a topic that I wanted to publicly write about.&lt;/p&gt;
+<p>I&#8217;ve been thinking about starting a blog for a few months now, but I
+could never find a topic that I wanted to publicly write about.</p>
 
-&lt;p&gt;Possibilities:&lt;/p&gt;
+<p>Possibilities:</p>
 
-&lt;ul&gt;
-&lt;li&gt;announcements of things that I am working on&lt;/li&gt;
-&lt;li&gt;interesting tech that I am playing with&lt;/li&gt;
-&lt;li&gt;topics related to school work&lt;/li&gt;
-&lt;/ul&gt;
+<ul>
+<li>announcements of things that I am working on</li>
+<li>interesting tech that I am playing with</li>
+<li>topics related to school work</li>
+</ul>
 
-&lt;p&gt;I will probably make a blog post about my
-&lt;a href=&quot;https://rubygems.org/gems/jiraSOAP&quot;&gt;jiraSOAP&lt;/a&gt; gem in the next few
-days since I am releasing version 0.9 tonight.&lt;/p&gt;
+<p>I will probably make a blog post about my
+<a href="https://rubygems.org/gems/jiraSOAP">jiraSOAP</a> gem in the next few
+days since I am releasing version 0.9 tonight.</p>
 
-&lt;p&gt;Hopefully I don't pollute the internet too much.&lt;/p&gt;
-</content>
+<p>Hopefully I don&#8217;t pollute the internet too much.</p>
+]]></content>
   </entry>
   
 </feed>

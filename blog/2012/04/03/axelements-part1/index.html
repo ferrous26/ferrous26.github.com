@@ -1,0 +1,575 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Accessibility: Keyboarding - My blog</title>
+  <meta name="author" content="Mark Rada">
+
+  
+  <meta name="description" content="This is the first article in a short series about the different
+components of
+AXElements. AXElements
+has been rewritten to be much more modular and &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ferrous26.github.com/blog/2012/04/03/axelements-part1">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="My blog" type="application/atom+xml">
+  <!--Fonts from Google's Web font directory at http://google.com/webfonts -->
+<link href='http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">My blog</a></h1>
+  
+    <h2>A working title</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ferrous26.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul role=main-navigation>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Accessibility: Keyboarding</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-04-03T00:00:00-04:00" pubdate data-updated="true">Apr 3<span>rd</span>, 2012</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>This is the first article in a short series about the different
+components of
+<a href="https://github.com/Marketcircle/AXElements">AXElements</a>. AXElements
+has been rewritten to be much more modular and now various components
+may be used individually. The keyboard event generator was the first
+component to be polished and released as its own gem.</p>
+
+<!--more-->
+
+<p>Event generation is exposed via the
+<a href="https://github.com/Marketcircle/AXElements/blob/master/lib/accessibility/string.rb">Accessibility::String</a>
+mix-in. Using the mix-in, a simple string of human readable text is
+taken and turned it into a sequence of events which may be fed to one
+of the keyboard event posting APIs provided by OS X.</p>
+
+<p>To get started you will need to have a working Ruby 1.9
+implementation&#8212;I&#8217;ve tested this with MRI 1.9.3 and MacRuby (for
+MacRuby you will need a <a href="http://www.macruby.org/files/nightlies/">nightly build</a>).
+Then you can install the <code>AXTyper</code> gem:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>gem install AXTyper
+</span></code></pre></td></tr></table></div></figure>
+
+<p>The quickest demonstration of event generation is through <code>irb</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">001</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="nb">require</span> <span class="s1">&#39;rubygems&#39;</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="kp">true</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">002</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="nb">require</span> <span class="s1">&#39;accessibility/string&#39;</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="kp">true</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">003</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="kp">include</span> <span class="no">Accessibility</span><span class="o">::</span><span class="nb">String</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="no">NSObject</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">004</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">events</span> <span class="o">=</span> <span class="n">keyboard_events_for</span> <span class="s2">&quot;Hello, </span><span class="si">#{</span><span class="no">ENV</span><span class="o">[</span><span class="s1">&#39;USER&#39;</span><span class="o">]</span><span class="si">}</span><span class="s2">.&quot;</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="o">[[</span><span class="mi">56</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">38</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">38</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">56</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">2</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">2</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">1</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">1</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">13</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">13</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">49</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">49</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">46</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">46</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">31</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">31</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">4</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">4</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">14</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">14</span><span class="p">,</span> <span class="kp">false</span><span class="o">]]</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">005</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>And now you have some events! Events are number/boolean tuples;
+the number is a key code and the boolean is the key state; there are
+more details regarding the key code, but I&#8217;ll get to that later.</p>
+
+<p>Now that we have some events, we should figure out what to do with
+them since they are not of much use on their own. The most useful, and
+easiest, thing to do is post them to the system. This of course comes
+with a caveat: you will actually be causing the keys to be typed out
+to the system and the front most application will receive the events.</p>
+
+<p><strong>Be careful of the string you give to the generator!</strong></p>
+
+<p>The interface for posting events is different depending on if you are
+using MRI or MacRuby. With MacRuby, events can be posted natively in
+Ruby code, but for this demonstration the C extension provided by
+<code>AXTyper</code> includes a singleton method, <code>KeyCoder.post_event</code>, which
+takes a single event and posts it to the system. Using this method we
+can post our events:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">005</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">events</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">event</span><span class="o">|</span> <span class="no">KeyCoder</span><span class="o">.</span><span class="n">post_event</span> <span class="n">event</span> <span class="k">end</span>
+</span><span class='line'><span class="no">Hello</span><span class="p">,</span> <span class="n">mrada</span><span class="o">.</span><span class="n">=</span><span class="o">&gt;</span> <span class="o">[[</span><span class="mi">56</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">38</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">38</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">56</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">2</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">2</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">35</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">1</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">1</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">13</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">13</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">49</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">49</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">46</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">46</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">31</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">31</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">4</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">4</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'> <span class="o">[</span><span class="mi">0</span><span class="p">,</span> <span class="kp">false</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">14</span><span class="p">,</span> <span class="kp">true</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">14</span><span class="p">,</span> <span class="kp">false</span><span class="o">]]</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">006</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Hello</span><span class="p">,</span> <span class="n">mrada</span><span class="o">.</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>You&#8217;ll notice that typing begins immediately when the <code>post_event</code>
+method is called. Typing is also really fast; in fact, it has to be
+slowed down for practical use.</p>
+
+<p>It may be nicer to wrap generation and posting together and add a
+small time buffer for you to release the enter key:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">type</span> <span class="n">string</span>
+</span><span class='line'>  <span class="nb">sleep</span> <span class="mi">0</span><span class="o">.</span><span class="mi">1</span>
+</span><span class='line'>  <span class="n">keyboard_events_for</span><span class="p">(</span><span class="n">string</span><span class="p">)</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">event</span><span class="o">|</span>
+</span><span class='line'>    <span class="no">KeyCoder</span><span class="o">.</span><span class="n">post_event</span> <span class="n">event</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now let&#8217;s try something a bit more complicated:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CONTROL+l `say &#39;ZOMG&#39;`</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>A Little More Depth</h2>
+
+<p>So what&#8217;s going on here? On the AXElements side of things there is just
+a basic lexer and generator. The lexer tokenizes the string input and
+the generator takes the tokens and generates one or more pairs of
+event tuples. The interesting detail is that a set of escape sequences
+for control keys has been added.</p>
+
+<h4>Lexing</h4>
+
+<p>Strings fed to the lexer support an extra set of escape sequences for
+the control keys like Control, Option, Command, etc.. The last example
+above used the <code>&quot;\\CONTROL&quot;</code> escape sequence to represent the left
+control key. Other than those special sequences, string formatting
+is straight forward and you can use all the letters, numbers, and
+symbols that you would in any other string. Uppercasing letters is
+automatically handled for you and so are all of the symbols that you
+would have to hold down the shift or option key in order to
+type. White space and line breaks in strings will get turned into
+tabs, spaces, and return/enter, and delete key presses appropriately,
+but you can also use <code>&quot;\t&quot;</code>, <code>&quot;\s&quot;</code>, <code>&quot;\r&quot;</code>, <code>&quot;\n&quot;</code>, and <code>&quot;\b&quot;</code> as you
+would in any other string.</p>
+
+<p>Once the lexer is done lexing, its output is fed into the generator.</p>
+
+<h4>Event Generation</h4>
+
+<p>The event generator inspects each token and figures out what events
+need to be generated in order type the token.</p>
+
+<p>As mentioned above, events are number/boolean tuples. They are fed to
+the
+<a href="http://developer.apple.com/library/mac/#documentation/Carbon/Reference/QuartzEventServicesRef/Reference/reference.html">CGEventCreateKeyboardEvent()</a>
+function that is used in the above examples. The function takes a key
+code and a key state as parameters and so each event pair is simply
+what is required to be passed to that function.</p>
+
+<p>Key codes are a mapping of numbers to keys on the keyboard; some
+mappings are static, such as the control keys; and some mappings are
+dynamic based on the keyboard layout. Since a code refers to a
+physical key and not the particular symbol they represent, upper case
+letters require the generation of events for pressing either the shift
+key before hitting the lower case letter.</p>
+
+<p>The key state is simply a boolean value with <code>true</code> meaning that the
+key is in the keydown state and <code>false</code> meaning that the key is in the
+keyup state. This makes it possible to hold down the shift key and
+then press the <code>&quot;a&quot;</code> key to generate an <code>&quot;A&quot;</code>; it also makes it
+possible to simulate hotkeys and symbols.</p>
+
+<h5>Symbols</h5>
+
+<p>Symbols such as <code>&quot;!&quot;</code>, <code>&quot;∑&quot;</code>, and <code>&quot;]&quot;</code> are all supported by the event
+generator. Any symbol that you can type directly using one or more
+keys should <strong>Just Work™</strong>. Some contrived examples might look like
+this snippet:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">type</span> <span class="s2">&quot;@hash = { a: &#39;∑&#39;, b: &#39;™&#39; }</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;@hash.merge! { c: &#39;£&#39;, d: &#39;¢&#39; }</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;@hash.inspect</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>A caveat to this is that some symbols can be on the keyboard twice,
+the obvious cases are the mathematical operations and numbers. The
+event generator does not use the keypad for plain symbols in
+strings. To use the keypad keys specifically you will need to use
+custom escape sequences.</p>
+
+<h5>Escape Characters</h5>
+
+<p>As mentioned above, standard escape codes (e.g. <code>&quot;\n&quot;</code>, <code>&quot;\t&quot;</code>) all still
+work, even using <code>&quot;\b&quot;</code> as the delete key. On top of the built in escape
+sequences, the lexer and generator have added an additional set of
+escape sequences for control keys and other static keys. The full list
+is located in the documentation
+<a href="http://rdoc.info/github/Marketcircle/AXElements/master/Accessibility/String/EventGenerator#CUSTOM-constant">here</a>,
+but the naming convention should be obvious enough after a small
+demonstration.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CONTROL&quot;</span>
+</span><span class='line'><span class="c1"># or</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CTRL&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># using built in escape codes</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;The cake is a lie</span><span class="se">\b\b\b\b\b\b</span><span class="s2"> delicious&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># Use the CMD+a hotkey and then start typing</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">COMMAND+a I just deleted everything, didn&#39;t I?&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># type one key and then the other</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">1 </span><span class="se">\\</span><span class="s2">+ </span><span class="se">\\</span><span class="s2">2 </span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># type all the keys as a hot key combination</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CMD+</span><span class="se">\\</span><span class="s2">SHIFT+s&quot;</span>
+</span><span class='line'><span class="c1"># or</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CMD+S&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># type out a backslash</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># type out a fake command key</span>
+</span><span class='line'><span class="n">type</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">CAKE&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>There are two rules to using the custom escape sequences. First, a
+custom escape sequence must be terminated by an empty space <em>or</em> the
+end of the string.</p>
+
+<h6>Hot Keys</h6>
+
+<p>The second rule is an exception to the first rule; a custom escape
+sequence can end with a <code>&quot;+&quot;</code> if it is being used in a hot key
+combination and will be immediately followed by another key in the
+combination. In previous examples we combined two and three keys in
+order to make a combination, but an upper limit on the number of keys
+is not defined by the event generator.</p>
+
+<h2>Sending Events To A Specific Application</h2>
+
+<p>Though the easiest way to post events to the system was to use
+<code>CGEventPost()</code>, there are also APIs for posting events to a specific
+application regardless of which application is focused.</p>
+
+<p>The API for doing this is located in the
+<a href="http://developer.apple.com/library/mac/#documentation/Accessibility/Reference/AccessibilityLowlevel/AXUIElement_h">OS X Accessibility headers</a>,
+but requires you to provide a reference to the application where you
+would like to post events. Using the accessibility APIs is a little
+tricky at first, especially in Ruby.</p>
+
+<p>I&#8217;ll cover Accessibility API basics in the next part of this series:
+&quot;Accessibility: From References To Objects&quot;.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Mark Rada</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-04-03T00:00:00-04:00" pubdate data-updated="true">Apr 3<span>rd</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/axelements/'>AXElements</a>, <a class='category' href='/blog/categories/accessibility/'>Accessibility</a>, <a class='category' href='/blog/categories/macruby/'>MacRuby</a>, <a class='category' href='/blog/categories/ruby/'>Ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://ferrous26.github.com/blog/2012/04/03/axelements-part1/" data-via="ferrous26" data-counturl="http://ferrous26.github.com/blog/2012/04/03/axelements-part1/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2011/08/21/jiraSOAP-0.9/" title="Previous Post: jiraSOAP 0.9">&laquo; jiraSOAP 0.9</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2012/04/03/axelements-part1/">Accessibility: Keyboarding</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2011/08/21/jiraSOAP-0.9/">jiraSOAP 0.9</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2011/08/03/first/">First!</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/ferrous26">@ferrous26</a> on GitHub
+  
+  <script type="text/javascript">
+    $.domReady(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'ferrous26',
+            count: 5,
+            skip_forks: false,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+<section>
+  <h1>Latest Tweets</h1>
+  <ul id="tweets">
+    <li class="loading">Status updating...</li>
+  </ul>
+  <script type="text/javascript">
+    $.domReady(function(){
+      getTwitterFeed("ferrous26", 3, false);
+    });
+  </script>
+  <script src="/javascripts/twitter.js" type="text/javascript"> </script>
+  
+    <a href="http://twitter.com/ferrous26" class="twitter-follow-button" data-show-count="false">Follow @ferrous26</a>
+  
+</section>
+
+
+<section class="googleplus googleplus-hidden">
+  <h1>
+    <a href="https://plus.google.com/Mark Rada?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2012 - Mark Rada -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'ferrous26-my-blog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ferrous26.github.com/blog/2012/04/03/axelements-part1/';
+        var disqus_url = 'http://ferrous26.github.com/blog/2012/04/03/axelements-part1/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

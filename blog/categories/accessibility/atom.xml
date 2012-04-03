@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Accessibility | My blog]]></title>
+  <link href="http://ferrous26.github.com/blog/categories/accessibility/atom.xml" rel="self"/>
+  <link href="http://ferrous26.github.com/"/>
+  <updated>2012-04-03T18:56:28-04:00</updated>
+  <id>http://ferrous26.github.com/</id>
+  <author>
+    <name><![CDATA[Mark Rada]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Accessibility: Keyboarding]]></title>
+    <link href="http://ferrous26.github.com/blog/2012/04/03/axelements-part1/"/>
+    <updated>2012-04-03T00:00:00-04:00</updated>
+    <id>http://ferrous26.github.com/blog/2012/04/03/axelements-part1</id>
+    <content type="html"><![CDATA[<p>This is the first article in a short series about the different
+components of
+<a href="https://github.com/Marketcircle/AXElements">AXElements</a>. AXElements
+has been rewritten to be much more modular and now various components
+may be used individually. The keyboard event generator was the first
+component to be polished and released as its own gem.</p>
+
+<!--more-->
+
+<p>Event generation is exposed via the
+<a href="https://github.com/Marketcircle/AXElements/blob/master/lib/accessibility/string.rb">Accessibility::String</a>
+mix-in. Using the mix-in, a simple string of human readable text is
+taken and turned it into a sequence of events which may be fed to one
+of the keyboard event posting APIs provided by OS X.</p>
+
+<p>To get started you will need to have a working Ruby 1.9
+implementation---I've tested this with MRI 1.9.3 and MacRuby (for
+MacRuby you will need a <a href="http://www.macruby.org/files/nightlies/">nightly build</a>).
+Then you can install the <code>AXTyper</code> gem:</p>
+
+<p><code>bash
+gem install AXTyper
+</code></p>
+
+<p>The quickest demonstration of event generation is through <code>irb</code>:</p>
+
+<p><code>ruby
+irb(main):001:0&gt; require 'rubygems'
+=&gt; true
+irb(main):002:0&gt; require 'accessibility/string'
+=&gt; true
+irb(main):003:0&gt; include Accessibility::String
+=&gt; NSObject
+irb(main):004:0&gt; events = keyboard_events_for &quot;Hello, #{ENV['USER']}.&quot;
+=&gt; [[56, true], [38, true], [38, false], [56, false], [2, true],
+ [2, false], [35, true], [35, false], [35, true], [35, false],
+ [1, true], [1, false], [13, true], [13, false], [49, true],
+ [49, false], [46, true], [46, false], [31, true], [31, false],
+ [0, true], [0, false], [4, true], [4, false], [0, true], [0, false],
+ [14, true], [14, false]]
+irb(main):005:0&gt;
+</code></p>
+
+<p>And now you have some events! Events are number/boolean tuples;
+the number is a key code and the boolean is the key state; there are
+more details regarding the key code, but I'll get to that later.</p>
+
+<p>Now that we have some events, we should figure out what to do with
+them since they are not of much use on their own. The most useful, and
+easiest, thing to do is post them to the system. This of course comes
+with a caveat: you will actually be causing the keys to be typed out
+to the system and the front most application will receive the events.</p>
+
+<p><strong>Be careful of the string you give to the generator!</strong></p>
+
+<p>The interface for posting events is different depending on if you are
+using MRI or MacRuby. With MacRuby, events can be posted natively in
+Ruby code, but for this demonstration the C extension provided by
+<code>AXTyper</code> includes a singleton method, <code>KeyCoder.post_event</code>, which
+takes a single event and posts it to the system. Using this method we
+can post our events:</p>
+
+<p><code>ruby
+irb(main):005:0&gt; events.each do |event| KeyCoder.post_event event end
+Hello, mrada.=&gt; [[56, true], [38, true], [38, false], [56, false],
+ [2, true], [2, false], [35, true], [35, false], [35, true],
+ [35, false], [1, true], [1, false], [13, true], [13, false],
+ [49, true], [49, false], [46, true], [46, false], [31, true],
+ [31, false], [0, true], [0, false], [4, true], [4, false], [0, true],
+ [0, false], [14, true], [14, false]]
+irb(main):006:0&gt; Hello, mrada.
+</code></p>
+
+<p>You'll notice that typing begins immediately when the <code>post_event</code>
+method is called. Typing is also really fast; in fact, it has to be
+slowed down for practical use.</p>
+
+<p>It may be nicer to wrap generation and posting together and add a
+small time buffer for you to release the enter key:</p>
+
+<p><code>ruby
+def type string
+  sleep 0.1
+  keyboard_events_for(string).each do |event|
+    KeyCoder.post_event event
+  end
+end
+</code></p>
+
+<p>Now let's try something a bit more complicated:</p>
+
+<p><code>ruby
+type &quot;\\CONTROL+l `say 'ZOMG'`\n&quot;
+</code></p>
+
+<h2>A Little More Depth</h2>
+
+<p>So what's going on here? On the AXElements side of things there is just
+a basic lexer and generator. The lexer tokenizes the string input and
+the generator takes the tokens and generates one or more pairs of
+event tuples. The interesting detail is that a set of escape sequences
+for control keys has been added.</p>
+
+<h4>Lexing</h4>
+
+<p>Strings fed to the lexer support an extra set of escape sequences for
+the control keys like Control, Option, Command, etc.. The last example
+above used the <code>&quot;\\CONTROL&quot;</code> escape sequence to represent the left
+control key. Other than those special sequences, string formatting
+is straight forward and you can use all the letters, numbers, and
+symbols that you would in any other string. Uppercasing letters is
+automatically handled for you and so are all of the symbols that you
+would have to hold down the shift or option key in order to
+type. White space and line breaks in strings will get turned into
+tabs, spaces, and return/enter, and delete key presses appropriately,
+but you can also use <code>&quot;\t&quot;</code>, <code>&quot;\s&quot;</code>, <code>&quot;\r&quot;</code>, <code>&quot;\n&quot;</code>, and <code>&quot;\b&quot;</code> as you
+would in any other string.</p>
+
+<p>Once the lexer is done lexing, its output is fed into the generator.</p>
+
+<h4>Event Generation</h4>
+
+<p>The event generator inspects each token and figures out what events
+need to be generated in order type the token.</p>
+
+<p>As mentioned above, events are number/boolean tuples. They are fed to
+the
+<a href="http://developer.apple.com/library/mac/#documentation/Carbon/Reference/QuartzEventServicesRef/Reference/reference.html">CGEventCreateKeyboardEvent()</a>
+function that is used in the above examples. The function takes a key
+code and a key state as parameters and so each event pair is simply
+what is required to be passed to that function.</p>
+
+<p>Key codes are a mapping of numbers to keys on the keyboard; some
+mappings are static, such as the control keys; and some mappings are
+dynamic based on the keyboard layout. Since a code refers to a
+physical key and not the particular symbol they represent, upper case
+letters require the generation of events for pressing either the shift
+key before hitting the lower case letter.</p>
+
+<p>The key state is simply a boolean value with <code>true</code> meaning that the
+key is in the keydown state and <code>false</code> meaning that the key is in the
+keyup state. This makes it possible to hold down the shift key and
+then press the <code>&quot;a&quot;</code> key to generate an <code>&quot;A&quot;</code>; it also makes it
+possible to simulate hotkeys and symbols.</p>
+
+<h5>Symbols</h5>
+
+<p>Symbols such as <code>&quot;!&quot;</code>, <code>&quot;∑&quot;</code>, and <code>&quot;]&quot;</code> are all supported by the event
+generator. Any symbol that you can type directly using one or more
+keys should <strong>Just Work™</strong>. Some contrived examples might look like
+this snippet:</p>
+
+<p><code>ruby
+type &quot;@hash = { a: '∑', b: '™' }\n&quot;
+type &quot;@hash.merge! { c: '£', d: '¢' }\n&quot;
+type &quot;@hash.inspect\n&quot;
+</code></p>
+
+<p>A caveat to this is that some symbols can be on the keyboard twice,
+the obvious cases are the mathematical operations and numbers. The
+event generator does not use the keypad for plain symbols in
+strings. To use the keypad keys specifically you will need to use
+custom escape sequences.</p>
+
+<h5>Escape Characters</h5>
+
+<p>As mentioned above, standard escape codes (e.g. <code>&quot;\n&quot;</code>, <code>&quot;\t&quot;</code>) all still
+work, even using <code>&quot;\b&quot;</code> as the delete key. On top of the built in escape
+sequences, the lexer and generator have added an additional set of
+escape sequences for control keys and other static keys. The full list
+is located in the documentation
+<a href="http://rdoc.info/github/Marketcircle/AXElements/master/Accessibility/String/EventGenerator#CUSTOM-constant">here</a>,
+but the naming convention should be obvious enough after a small
+demonstration.</p>
+
+<p>```ruby
+type &quot;\CONTROL&quot;</p>
+
+<h1>or</h1>
+
+<p>type &quot;\CTRL&quot;</p>
+
+<h1>using built in escape codes</h1>
+
+<p>type &quot;The cake is a lie\b\b\b\b\b\b delicious&quot;</p>
+
+<h1>Use the CMD+a hotkey and then start typing</h1>
+
+<p>type &quot;\COMMAND+a I just deleted everything, didn't I?&quot;</p>
+
+<h1>type one key and then the other</h1>
+
+<p>type &quot;\1 \+ \2 \n&quot;</p>
+
+<h1>type all the keys as a hot key combination</h1>
+
+<p>type &quot;\CMD+\SHIFT+s&quot;</p>
+
+<h1>or</h1>
+
+<p>type &quot;\CMD+S&quot;</p>
+
+<h1>type out a backslash</h1>
+
+<p>type &quot;\&quot;</p>
+
+<h1>type out a fake command key</h1>
+
+<p>type &quot;\CAKE&quot;
+```</p>
+
+<p>There are two rules to using the custom escape sequences. First, a
+custom escape sequence must be terminated by an empty space <em>or</em> the
+end of the string.</p>
+
+<h6>Hot Keys</h6>
+
+<p>The second rule is an exception to the first rule; a custom escape
+sequence can end with a <code>&quot;+&quot;</code> if it is being used in a hot key
+combination and will be immediately followed by another key in the
+combination. In previous examples we combined two and three keys in
+order to make a combination, but an upper limit on the number of keys
+is not defined by the event generator.</p>
+
+<h2>Sending Events To A Specific Application</h2>
+
+<p>Though the easiest way to post events to the system was to use
+<code>CGEventPost()</code>, there are also APIs for posting events to a specific
+application regardless of which application is focused.</p>
+
+<p>The API for doing this is located in the
+<a href="http://developer.apple.com/library/mac/#documentation/Accessibility/Reference/AccessibilityLowlevel/AXUIElement_h">OS X Accessibility headers</a>,
+but requires you to provide a reference to the application where you
+would like to post events. Using the accessibility APIs is a little
+tricky at first, especially in Ruby.</p>
+
+<p>I'll cover Accessibility API basics in the next part of this series:
+&quot;Accessibility: From References To Objects&quot;.</p>
+]]></content>
+  </entry>
+  
+</feed>
