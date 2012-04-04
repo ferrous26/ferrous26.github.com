@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Accessibility | My blog]]></title>
   <link href="http://ferrous26.github.com/blog/categories/accessibility/atom.xml" rel="self"/>
   <link href="http://ferrous26.github.com/"/>
-  <updated>2012-04-03T20:28:39-04:00</updated>
+  <updated>2012-04-03T20:33:10-04:00</updated>
   <id>http://ferrous26.github.com/</id>
   <author>
     <name><![CDATA[Mark Rada]]></name>
@@ -95,9 +95,9 @@ irb(main):006:0&gt; Hello, mrada.
 method is called. Typing is also really fast; in fact, it has to be
 slowed down for practical use.</p>
 
-<p>Let's add a wrapper to do generation and posting together and add a
-small time buffer so that you get a chance to release the enter key
-after entering a command:</p>
+<p>Let's add a wrapper to do generation and posting together, we'll
+alsoadd a small time buffer so that you get a chance to release the
+return key after entering a command in <code>irb</code>:</p>
 
 <p><code>ruby
 def type string
