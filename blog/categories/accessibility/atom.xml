@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Accessibility | My blog]]></title>
   <link href="http://ferrous26.github.com/blog/categories/accessibility/atom.xml" rel="self"/>
   <link href="http://ferrous26.github.com/"/>
-  <updated>2012-04-03T20:40:29-04:00</updated>
+  <updated>2012-04-04T01:03:20-04:00</updated>
   <id>http://ferrous26.github.com/</id>
   <author>
     <name><![CDATA[Mark Rada]]></name>
@@ -41,6 +41,12 @@ Then you can install the <code>AXTyper</code> gem:</p>
 <p><code>bash
 gem install AXTyper
 </code></p>
+
+<p><strong>UPDATE</strong>: The gem has been reported to not compile if your Ruby was
+compiled with GCC. The preferred solution would be for you to
+recompile Ruby with Clang. 😝I'm not a pro with C extensions, but I'll
+look into whether or not I can force the extension to compile with
+Clang for you people who don't/can't recompile with Clang.</p>
 
 <p>The quickest demonstration of event generation is through <code>irb</code>:</p>
 
