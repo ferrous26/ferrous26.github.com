@@ -4,7 +4,7 @@
   <title><![CDATA[My blog]]></title>
   <link href="http://ferrous26.github.com/atom.xml" rel="self"/>
   <link href="http://ferrous26.github.com/"/>
-  <updated>2012-04-04T01:05:12-04:00</updated>
+  <updated>2012-04-04T11:58:57-04:00</updated>
   <id>http://ferrous26.github.com/</id>
   <author>
     <name><![CDATA[Mark Rada]]></name>
@@ -48,6 +48,11 @@ recompile Ruby with Clang or use MacRuby. 😝 I&#8217;m not a pro with C
 extensions, but I&#8217;ll look into whether or not I can force the
 extension to compile with Clang for you people who do not want to, or
 cannot, recompile with Clang.</p>
+
+<p><strong>UPDATE 2</strong>: AXTyper-0.7.4 now checks if Ruby&#8217;s CC is Clang. If it is
+not Clang then it tries to find Clang in your $PATH. A proper error
+message is given if Clang cannot be found. Clang is binary compatible
+with GCC, so this should be safe to do.</p>
 
 <p>The quickest demonstration of event generation is through <code>irb</code>:</p>
 
